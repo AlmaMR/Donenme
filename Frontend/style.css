@@ -1,0 +1,11 @@
+/* Aplicar la fuente Inter como fuente principal */
+body {
+    font-family: 'Inter', sans-serif;
+}
+/* Estilos para ocultar/mostrar vistas */
+.view {
+    display: none;
+}
+.view.active {
+    display: block;
+}
