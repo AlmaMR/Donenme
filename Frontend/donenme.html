@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DONENME - Donación de Alimentos</title>
+    <title>DÓNENME - Donación de Alimentos</title>
+    <link rel="icon" type="image/png" href="img/Logo11.png" />
     <!-- Carga de Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Carga de la fuente Inter -->
@@ -17,13 +18,20 @@
     <!-- Enlace al script JS externo (con defer) -->
     <script src="app.js" defer></script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="flex items-center justify-center min-h-screen">
+    <!-- La clase 'bg-gray-100' que estaba aquí ya no es necesaria 
+         porque 'style.css' ahora controla el fondo del body -->
 
-    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-lg">
+    <!-- ===== CAMBIO CLAVE AQUÍ ===== -->
+    <!-- Se cambió 'bg-white' por 'bg-white/90' (blanco con 90% de opacidad) -->
+    <!-- Se añadió 'backdrop-blur-sm' para un efecto de "vidrio esmerilado" -->
+
+    <!-- <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-lg"> -->
+    <div class="bg-white/90 backdrop-blur-sm p-8 rounded-lg shadow-xl w-full max-w-lg">
 
         <!-- ===== VISTA DE LOGIN ===== -->
         <div id="login-view" class="view active">
-            <h1 class="text-4xl font-bold text-center text-emerald-600 mb-2">DONENME</h1>
+            <img src="img/Logo09.png" alt="DÓNENME Logo" class="block mx-auto w-40 mb-4">
             <h2 class="text-2xl font-semibold text-center text-gray-800 mb-6">Iniciar Sesión</h2>
             <p class="text-center text-gray-600 mb-6">Bienvenido de vuelta. Ingresa a tu cuenta.</p>
             
@@ -40,7 +48,7 @@
                 <!-- Contenedor para mensajes de error/éxito -->
                 <div id="login-message" class="text-center mb-4"></div>
 
-                <button type="submit" class="w-full bg-emerald-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-emerald-700 transition duration-300">
+                <button type="submit" class="w-full bg-[#4077B7] text-white py-2 px-4 rounded-lg font-semibold hover:bg-[#244673] transition duration-300">
                     Ingresar
                 </button>
             </form>
@@ -55,7 +63,7 @@
 
         <!-- ===== VISTA DE REGISTRO ===== -->
         <div id="register-view" class="view">
-            <h1 class="text-4xl font-bold text-center text-emerald-600 mb-2">DONENME</h1>
+            <img src="img/Logo09.png" alt="DÓNENME Logo" class="block mx-auto w-40 mb-4">
             <h2 class="text-2xl font-semibold text-center text-gray-800 mb-6">Crear Cuenta</h2>
             <p class="text-center text-gray-600 mb-6">Únete a la red de donación de alimentos.</p>
             
@@ -152,7 +160,7 @@
                 <!-- Contenedor para mensajes de error/éxito -->
                 <div id="register-message" class="text-center my-4"></div>
 
-                <button id="register-submit-btn" type="submit" class="w-full bg-emerald-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-emerald-700 transition duration-300 hidden mt-6">
+                <button id="register-submit-btn" type="submit" class="w-full bg-[#4077B7] text-white py-2 px-4 rounded-lg font-semibold hover:bg-[#244673] transition duration-300 hidden mt-6">
                     Crear mi cuenta
                 </button>
             </form>

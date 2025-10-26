@@ -1,7 +1,18 @@
 /* Aplicar la fuente Inter como fuente principal */
 body {
     font-family: 'Inter', sans-serif;
+
+    /* --- NUEVO: Fondo de imagen para toda la página --- */
+    
+    /* !! REEMPLAZA ESTA URL por la de tu propia imagen de fondo !! */
+    background-image: url('https://images.pexels.com/photos/6591154/pexels-photo-6591154.jpeg?_gl=1*t2uztn*_ga*MTI1MjE3OTQ4OC4xNzYxMzI3NzI4*_ga_8JE65Q40S6*czE3NjEzMjc3MjgkbzEkZzEkdDE3NjEzMjgzNDkkajU5JGwwJGgw');
+    
+    background-size: cover; /* Asegura que la imagen cubra todo */
+    background-position: center; /* Centra la imagen */
+    background-attachment: fixed; /* La imagen no se mueve al hacer scroll */
+    background-repeat: no-repeat;
 }
+
 /* Estilos para ocultar/mostrar vistas */
 .view {
     display: none;
