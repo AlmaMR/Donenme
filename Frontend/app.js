@@ -114,38 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
         }
     });
-    
-    // --- Lógica de Envío de Formularios (CONECTADA AL BACKEND) ---
-    // (Esta parte se queda igual, ya era correcta)
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        loginMessage.textContent = 'Verificando...';
-        loginMessage.className = 'text-center text-blue-500 mb-4';
-        
-        const contacto = document.getElementById('login-telefono').value;
-        const contrasena = document.getElementById('login-password').value;
-
-        try {
-            const response = await fetch(`${API_URL}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contacto, contrasena })
-            });
-
-            const data = await response.json();
-
-            if (data.status === "success") {
-                showLoginMessage('¡Inicio de sesión exitoso! Redirigiendo...');
-                localStorage.setItem('donenme_token', data.token);
-                // window.location.href = '/dashboard.html'; // Descomentar para redirigir
-            } else {
-                showLoginMessage(data.message, true);
-            }
-        } catch (error) {
-            console.error('Error de red en Login:', error);
-            showLoginMessage('Error de conexión con el servidor.', true);
-        }
-    });
 
     // Envío de Registro
     registerForm.addEventListener('submit', async (e) => {
@@ -235,6 +203,39 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error de red en Registro:', error);
             showRegisterMessage('Error de conexión con el servidor.', true);
+        }
+    });
+    
+    // --- Lógica de Envío de Formularios (CONECTADA AL BACKEND) ---
+    // (Esta parte se queda igual, ya era correcta)
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        loginMessage.textContent = 'Verificando...';
+        loginMessage.className = 'text-center text-blue-500 mb-4';
+        
+        const contacto = document.getElementById('login-telefono').value;
+        const contrasena = document.getElementById('login-password').value;
+
+        try {
+            const response = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contacto, contrasena })
+            });
+
+            const data = await response.json();
+
+            if (data.status === "success") {
+                showLoginMessage('¡Inicio de sesión exitoso! Redirigiendo...');
+                localStorage.setItem('donenme_token', data.token);
+                window.location.href = 'dashboard.html'; // Descomentar para redirigir
+                // window.location.href = 'dash.html'; // Descomentar para redirigir
+            } else {
+                showLoginMessage(data.message, true);
+            }
+        } catch (error) {
+            console.error('Error de red en Login:', error);
+            showLoginMessage('Error de conexión con el servidor.', true);
         }
     });
 

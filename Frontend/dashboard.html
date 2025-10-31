@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - DÓNENME</title>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/AlmaMR/Donenme/refs/heads/main/Frontend/img/menosPesadas/Logo11.png" />
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carga de la fuente Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Carga de estilos del Dashboard -->
+    <link rel="stylesheet" href="dashboard.style.css">
+</head>
+<body class="min-h-screen p-4 sm:p-8">
+
+    <!-- ===== HEADER ===== -->
+    <header class="bg-white/90 backdrop-blur-sm p-4 rounded-lg shadow-md flex justify-between items-center mb-6">
+        <img src="https://raw.githubusercontent.com/AlmaMR/Donenme/refs/heads/main/Frontend/img/menosPesadas/Logo09.png" alt="DÓNENME Logo" class="block h-12 w-auto">
+        <div class="text-right">
+            <h2 id="user-greeting" class="font-semibold text-gray-800">Cargando...</h2>
+            <p id="user-role" class="text-sm text-gray-600">...</p>
+            <button id="logout-button" class="text-sm text-red-600 hover:text-red-800 font-medium">Cerrar Sesión</button>
+        </div>
+    </header>
+
+    <!-- ===== CONTENIDO PRINCIPAL ===== -->
+    <main id="main-content" class="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-md min-h-[70vh]">
+        
+        <!-- Indicador de Carga -->
+        <div id="loading-spinner" class="text-center p-10">
+            <p class="text-lg font-medium text-gray-700">Cargando datos...</p>
+        </div>
+
+        <!-- ===== VISTA DE DONADOR ===== -->
+        <div id="donor-view" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-2xl font-bold text-gray-800">Mis Donaciones</h1>
+                <button id="open-modal-button" class="bg-[#4077B7] text-white py-2 px-4 rounded-lg font-semibold hover:bg-[#244673] transition duration-300">
+                    + Agregar Donación
+                </button>
+            </div>
+            <div id="donor-donations-list" class="space-y-4">
+                <!-- Las donaciones del donador se cargarán aquí -->
+            </div>
+        </div>
+
+        <!-- ===== VISTA DE RECEPTOR ===== -->
+        <div id="recipient-view" class="hidden">
+            <h1 class="text-2xl font-bold text-gray-800 mb-4">Donaciones Disponibles</h1>
+            <div id="recipient-donations-list" class="space-y-6">
+                <!-- Las donaciones de todos, agrupadas por donador, se cargarán aquí -->
+            </div>
+        </div>
+    </main>
+
+    <!-- ===== MODAL PARA AGREGAR DONACIÓN (Solo Donador) ===== -->
+    <div id="add-donation-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <form id="add-donation-form">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800">Crear Nueva Donación</h3>
+                        <button type="button" id="close-modal-button" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="punto_reunion" class="block text-sm font-medium text-gray-700 mb-1">Punto de Reunión</label>
+                        <input type="text" id="punto_reunion" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500" placeholder="Dirección, referencia, o enlace de mapa" required>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Contenedor de Productos -->
+                    <h4 class="text-lg font-semibold text-gray-700 mb-2">Productos</h4>
+                    <div id="product-fields-container" class="space-y-3 mb-4">
+                        <!-- El primer producto (plantilla) -->
+                        <div class="product-item grid grid-cols-1 md:grid-cols-4 gap-3 p-3 border rounded-lg">
+                            <input type="text" class="product-tipo w-full px-3 py-2 border rounded-lg" placeholder="Tipo (Ej: Arroz, Frijol)" required>
+                            <input type="number" class="product-cantidad w-full px-3 py-2 border rounded-lg" placeholder="Cantidad (Ej: 5)" min="1" required>
+                            <input type="date" class="product-caducidad w-full px-3 py-2 border rounded-lg" required>
+                            <input type="text" class="product-descripcion w-full px-3 py-2 border rounded-lg" placeholder="Descripción (Ej: Bolsa 1kg)">
+                        </div>
+                    </div>
+                    <button type="button" id="add-product-button" class="text-sm font-medium text-emerald-600 hover:text-emerald-500">+ Agregar otro producto</button>
+
+                </div>
+                
+                <!-- Footer del Modal -->
+                <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                    <div id="modal-message" class="text-red-500 text-sm mr-auto"></div>
+                    <button type="button" id="cancel-modal-button" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="bg-[#4077B7] text-white py-2 px-4 rounded-lg font-semibold hover:bg-[#244673]">Guardar Donación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script del Dashboard (defer asegura que se cargue después del HTML) -->
+    <script src="dashboard.app.js" defer></script>
+</body>
+</html>

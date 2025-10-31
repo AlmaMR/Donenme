@@ -1,0 +1,17 @@
+/* Reutilizamos el fondo de la pantalla de login para consistencia */
+body {
+    font-family: 'Inter', sans-serif;
+    
+    /* !! REEMPLAZA ESTA URL por la de tu propia imagen de fondo !! */
+    background-image: url('https://images.pexels.com/photos/6591154/pexels-photo-6591154.jpeg?_gl=1*t2uztn*_ga*MTI1MjE3OTQ4OC4xNzYxMzI3NzI4*_ga_8JE65Q40S6*czE3NjEzMjc3MjgkbzEkZzEkdDE3NjEzMjgzNDkkajU5JGwwJGgw');
+    
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+}
+
+/* Estilos para ocultar/mostrar elementos */
+.hidden {
+    display: none;
+}
