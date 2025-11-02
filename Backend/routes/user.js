@@ -11,7 +11,8 @@ const {
     registerPersonaFisica,
     registerGobierno,
     loginUser,
-    getUserProfile // <-- Importar la nueva función
+    getUserProfile, // <-- Importar la nueva función
+    updateUserProfile // <-- Importar la nueva función
 } = require('../controllers/user.js');
 
 // Rutas de Registro (Públicas)
@@ -23,10 +24,8 @@ router.post('/register/gobierno', registerGobierno);
 // Ruta de Login (Pública)
 router.post('/login', loginUser);
 
-// 3. Nueva Ruta Protegida (Privada)
-// Nota cómo 'authMiddleware' va en medio:
-// 1. Petición -> 2. authMiddleware (guardia) -> 3. getUserProfile (controlador)
+// 3. Nuevas Rutas Protegidas (Privadas)
 router.get('/me', authMiddleware, getUserProfile);
-
+router.put('/me', authMiddleware, updateUserProfile); // <-- Nueva ruta para actualizar
 
 module.exports = router;

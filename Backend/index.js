@@ -14,6 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 // Rutas
 // Conecta tus rutas de usuario
 app.use('/api/users', require('./routes/user')); 
+app.use('/api/donaciones', require('./routes/donaciones')); // <-- Nueva ruta para donaciones
 
 // Iniciar el servidor
 app.listen(port, () => {

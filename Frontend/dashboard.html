@@ -26,8 +26,8 @@
             <!-- Botón para abrir el menú -->
             <button id="user-menu-button" class="flex items-center space-x-2 focus:outline-none">
                 <div class="text-right">
-                    <h2 id="user-greeting" class="font-semibold text-gray-800">Cargando...</h2>
-                    <p id="user-role" class="text-sm text-gray-600">...</p>
+                    <h2 id="user-name" class="font-semibold text-gray-800">Cargando...</h2>
+                    <p class="text-sm text-gray-600">Rol: <span id="user-role">...</span></p>
                 </div>
                 <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </button>
@@ -51,7 +51,7 @@
         <!-- ===== VISTA DE DONADOR ===== -->
         <div id="donor-view" class="hidden">
             <div class="flex justify-between items-center mb-4">
-                <h1 class="text-2xl font-bold text-gray-800">Mis Donaciones</h1>
+                <h1 class="text-2xl font-bold text-gray-800">Donaciones</h1>
                 <button id="open-modal-button" class="bg-[#4077B7] text-white py-2 px-4 rounded-lg font-semibold hover:bg-[#244673] transition duration-300">
                     + Agregar Donación
                 </button>
@@ -80,6 +80,8 @@
                         <button type="button" id="close-modal-button" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
                     </div>
 
+                    <input type="hidden" id="edit-donation-id">
+
                     <div class="mb-4">
                         <label for="punto_reunion" class="block text-sm font-medium text-gray-700 mb-1">Punto de Reunión</label>
                         <input type="text" id="punto_reunion" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500" placeholder="Dirección, referencia, o enlace de mapa" required>
@@ -107,6 +109,53 @@
                     <div id="modal-message" class="text-red-500 text-sm mr-auto"></div>
                     <button type="button" id="cancel-modal-button" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300">Cancelar</button>
                     <button type="submit" class="bg-[#4077B7] text-white py-2 px-4 rounded-lg font-semibold hover:bg-[#244673]">Guardar Donación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL PARA EDITAR PERFIL ===== -->
+    <div id="edit-profile-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <form id="edit-profile-form">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800">Modificar Mi Perfil</h3>
+                        <button type="button" id="close-edit-modal-button" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                    </div>
+
+                    <!-- Campos del Perfil -->
+                    <div class="space-y-4">
+                        <div>
+                            <label for="edit-nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                            <input type="text" id="edit-nombre" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500" required>
+                        </div>
+                        <div>
+                            <label for="edit-contacto" class="block text-sm font-medium text-gray-700 mb-1">Contacto (Email o Teléfono)</label>
+                            <input type="text" id="edit-contacto" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500" required>
+                        </div>
+                        <div>
+                            <label for="edit-direccion" class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                            <input type="text" id="edit-direccion" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
+                        </div>
+                        <hr class="my-2">
+                        <h4 class="text-md font-semibold text-gray-700">Cambiar Contraseña (Opcional)</h4>
+                        <div>
+                            <label for="edit-password" class="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
+                            <input type="password" id="edit-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Dejar en blanco para no cambiar">
+                        </div>
+                        <div>
+                            <label for="edit-password-confirm" class="block text-sm font-medium text-gray-700 mb-1">Confirmar Nueva Contraseña</label>
+                            <input type="password" id="edit-password-confirm" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer del Modal -->
+                <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 items-center">
+                    <div id="edit-modal-message" class="text-red-500 text-sm mr-auto"></div>
+                    <button type="button" id="cancel-edit-modal-button" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="bg-[#4077B7] text-white py-2 px-4 rounded-lg font-semibold hover:bg-[#244673]">Guardar Cambios</button>
                 </div>
             </form>
         </div>

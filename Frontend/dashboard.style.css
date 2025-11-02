@@ -1,17 +1,128 @@
-/* Reutilizamos el fondo de la pantalla de login para consistencia */
+/* Paleta de colores y variables */
+:root {
+    --primary-color: #4077B7; /* Azul principal */
+    --primary-hover: #244673; /* Azul oscuro para hover */
+    --secondary-color: #4CAF50; /* Verde para éxito o acciones positivas */
+    --background-start: #f0f4f8; /* Inicio del gradiente de fondo */
+    --background-end: #d9e2ec;   /* Fin del gradiente de fondo */
+    --card-bg: #ffffff;          /* Fondo de las tarjetas */
+    --text-dark: #1a202c;         /* Texto oscuro principal */
+    --text-light: #4a5568;        /* Texto más claro y secundario */
+    --border-color: #e2e8f0;      /* Color de borde sutil */
+}
+
+/* Estilo base del cuerpo */
 body {
     font-family: 'Inter', sans-serif;
-    
-    /* !! REEMPLAZA ESTA URL por la de tu propia imagen de fondo !! */
-    background-image: url('https://images.pexels.com/photos/6591154/pexels-photo-6591154.jpeg?_gl=1*t2uztn*_ga*MTI1MjE3OTQ4OC4xNzYxMzI3NzI4*_ga_8JE65Q40S6*czE3NjEzMjc3MjgkbzEkZzEkdDE3NjEzMjgzNDkkajU5JGwwJGgw');
-    
+    background-image: linear-gradient(to top, var(--background-start), var(--background-end));
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
     background-repeat: no-repeat;
+    color: var(--text-dark);
 }
 
 /* Estilos para ocultar/mostrar elementos */
 .hidden {
     display: none;
+}
+
+/* Estilo del Header */
+header {
+    position: relative; /* Asegura que z-index funcione */
+    z-index: 20;        /* Pone el header por encima de otros elementos */
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.3s ease;
+}
+
+header:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Contenido principal */
+#main-content {
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Botones principales */
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+/* Estilo de las tarjetas de donación */
+.donation-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.donation-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Títulos de las secciones */
+h1, h2, h3 {
+    color: var(--text-dark);
+}
+
+/* Estilo del modal */
+#add-donation-modal .bg-white {
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* Inputs del formulario */
+input[type="text"],
+input[type="number"],
+input[type="date"] {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 15px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(64, 119, 183, 0.2);
+    outline: none;
+}
+
+/* Animación para el spinner de carga */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+#loading-spinner::before {
+    content: '';
+    box-sizing: border-box;
+    display: block;
+    width: 40px;
+    height: 40px;
+    margin: 20px auto;
+    border-radius: 50%;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    animation: spin 1s linear infinite;
 }

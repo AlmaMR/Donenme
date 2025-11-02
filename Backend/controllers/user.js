@@ -201,6 +201,46 @@ const getUserProfile = async (req, res) => {
     }
 };
 
+// ===============================================
+// FUNCIÓN PARA ACTUALIZAR PERFIL (SPRINT 3)
+// ===============================================
+
+const updateUserProfile = async (req, res) => {
+    const userId = req.user.id;
+    const { nombre, contacto, direccion, contrasena } = req.body;
+
+    try {
+        // 1. Obtener el documento actual del usuario
+        const userDoc = await donenme_db.get(userId);
+
+        // 2. Actualizar los campos proporcionados
+        if (nombre) userDoc.nombre = nombre;
+        if (contacto) userDoc.contacto = contacto;
+        if (direccion) userDoc.direccion = direccion;
+
+        // 3. Si se proporcionó una nueva contraseña, hashearla y actualizarla
+        if (contrasena) {
+            const hashedPassword = await bcrypt.hash(contrasena, 10);
+            userDoc.contrasena = hashedPassword;
+        }
+
+        // 4. Guardar el documento actualizado en la base de datos
+        await donenme_db.insert(userDoc);
+
+        res.status(200).json({ 
+            status: "success", 
+            message: "Perfil actualizado correctamente."
+        });
+
+    } catch (error) {
+        console.error("Error al actualizar perfil:", error);
+        res.status(500).json({ 
+            status: "error", 
+            message: "Error interno del servidor al actualizar el perfil." 
+        });
+    }
+};
+
 
 // ===============================================
 // EXPORTS (Actualizados)
@@ -212,5 +252,6 @@ module.exports = {
     registerPersonaFisica,
     registerGobierno,
     loginUser,
-    getUserProfile
+    getUserProfile,
+    updateUserProfile // <-- Exportar la nueva función
 };

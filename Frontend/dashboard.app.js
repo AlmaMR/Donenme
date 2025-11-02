@@ -5,7 +5,7 @@ const API_BASE_URL = 'http://localhost:3000/api'; // Asumiendo que esta es la ba
 document.addEventListener('DOMContentLoaded', () => {
     
     // Elementos principales
-    const userGreeting = document.getElementById('user-greeting');
+    const userName = document.getElementById('user-name');
     const userRole = document.getElementById('user-role');
     const logoutButton = document.getElementById('logout-button');
     const loadingSpinner = document.getElementById('loading-spinner');
@@ -33,7 +33,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const userMenu = document.getElementById('user-menu');
     const editProfileButton = document.getElementById('edit-profile-button');
 
+    // Elementos del Modal de Edición de Perfil
+    const editProfileModal = document.getElementById('edit-profile-modal');
+    const closeEditModalButton = document.getElementById('close-edit-modal-button');
+    const cancelEditModalButton = document.getElementById('cancel-edit-modal-button');
+    const editProfileForm = document.getElementById('edit-profile-form');
+    const editModalMessage = document.getElementById('edit-modal-message');
+
     let userToken = null; // Almacenará el token del usuario
+    let currentUserData = null; // Almacenará los datos del usuario actual
 
     // --- 1. INICIALIZACIÓN Y AUTENTICACIÓN ---
 
@@ -53,9 +61,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         editProfileButton.addEventListener('click', (e) => {
             e.preventDefault();
-            alert('La funcionalidad para modificar el perfil se implementará próximamente.');
             userMenu.classList.add('hidden');
+            openEditProfileModal(); // Nueva función para abrir el modal de edición
         });
+
+        // Listeners para el modal de edición
+        closeEditModalButton.addEventListener('click', () => editProfileModal.classList.add('hidden'));
+        cancelEditModalButton.addEventListener('click', () => editProfileModal.classList.add('hidden'));
+        editProfileForm.addEventListener('submit', handleProfileUpdate);
 
         // Cerrar el menú si se hace clic fuera de él
         window.addEventListener('click', (e) => {
@@ -84,13 +97,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const userData = await response.json();
+            currentUserData = userData; // Guardar los datos del usuario
             
             // Renderizar la información del header
-            userGreeting.textContent = `Hola, ${userData.nombre || 'Usuario'}`;
-            userRole.textContent = `Rol: ${userData.rol}`; // Asumo que el rol viene como 'donador' o 'receptor'
+            userName.textContent = `Hola, ${userData.nombre || 'Usuario'}`;
 
-            // Configurar la UI según el rol
-            setupUIForRole(userData.rol);
+            if (userData.rol && (userData.rol === 'donador' || userData.rol === 'receptor')) {
+                userRole.textContent = userData.rol;
+                // Configurar la UI según el rol
+                setupUIForRole(userData.rol);
+            } else {
+                const mainContent = document.getElementById('main-content');
+                mainContent.innerHTML = `
+                    <div class="text-center">
+                        <h1 class="text-2xl font-bold text-red-600">Error: Rol de Usuario No Válido</h1>
+                        <p class="text-gray-700 mt-2">
+                            Tu rol actual es "${userData.rol || 'No definido'}". 
+                            Para usar el dashboard, tu rol debe ser 'donador' o 'receptor'.
+                        </p>
+                        <p class="mt-4">Por favor, contacta a soporte para corregir tu perfil.</p>
+                    </div>
+                `;
+                loadingSpinner.classList.add('hidden');
+            }
 
         } catch (error) {
             console.error('Error al verificar sesión:', error);
@@ -101,6 +130,75 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- MODAL DE EDICIÓN DE PERFIL ---
+
+    function openEditProfileModal() {
+        if (!currentUserData) {
+            alert("No se han podido cargar los datos del usuario.");
+            return;
+        }
+
+        // Rellenar el formulario con los datos actuales
+        document.getElementById('edit-nombre').value = currentUserData.nombre || '';
+        document.getElementById('edit-contacto').value = currentUserData.contacto || '';
+        document.getElementById('edit-direccion').value = currentUserData.direccion || '';
+
+        // Limpiar campos de contraseña y mensajes de error
+        document.getElementById('edit-password').value = '';
+        document.getElementById('edit-password-confirm').value = '';
+        editModalMessage.textContent = '';
+
+        // Mostrar el modal
+        editProfileModal.classList.remove('hidden');
+    }
+
+    async function handleProfileUpdate(e) {
+        e.preventDefault();
+        editModalMessage.textContent = '';
+
+        const nombre = document.getElementById('edit-nombre').value;
+        const contacto = document.getElementById('edit-contacto').value;
+        const direccion = document.getElementById('edit-direccion').value;
+        const password = document.getElementById('edit-password').value;
+        const passwordConfirm = document.getElementById('edit-password-confirm').value;
+
+        if (password !== passwordConfirm) {
+            editModalMessage.textContent = 'Las contraseñas no coinciden.';
+            return;
+        }
+
+        const updateData = {
+            nombre,
+            contacto,
+            direccion,
+        };
+
+        if (password) {
+            updateData.contrasena = password;
+        }
+
+        try {
+            const response = await fetchWithAuth('/users/me', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al actualizar el perfil.');
+            }
+
+            // Éxito - Actualizar UI y cerrar modal
+            editProfileModal.classList.add('hidden');
+            await fetchUserProfile(); // Recargar los datos para que se reflejen en el header
+            alert('¡Perfil actualizado con éxito!');
+
+        } catch (error) {
+            editModalMessage.textContent = error.message;
+        }
+    }
+
     function logout() {
         localStorage.removeItem('donenme_token');
         window.location.href = 'Login.html'; // Corregido para apuntar a Login.html
@@ -108,21 +206,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 2. CONFIGURACIÓN DE UI POR ROL ---
 
-    function setupUIForRole(role) {
+    async function setupUIForRole(role) {
         loadingSpinner.classList.add('hidden');
 
         if (role === 'donador') {
             donorView.classList.remove('hidden');
             setupDonorListeners();
-            fetchDonorDonations();
+            await loadAndRenderDonations(role);
         } else if (role === 'receptor') {
             recipientView.classList.remove('hidden');
-            fetchAllDonations();
+            await loadAndRenderDonations(role);
         } else {
             // Rol desconocido
-            userGreeting.textContent = 'Error: Rol de usuario no reconocido.';
+            userName.textContent = 'Error: Rol de usuario no reconocido.';
         }
     }
+
+    // --- 3. LÓGICA DE DONACIONES (CARGA Y RENDERIZADO) ---
+
+    async function loadAndRenderDonations(role) {
+        const listElement = role === 'donador' ? donorDonationsList : recipientDonationsList;
+        listElement.innerHTML = '<p class="text-gray-600">Cargando donaciones...</p>';
+
+        try {
+            const endpoint = role === 'donador' ? '/donaciones/mis-donaciones' : '/donaciones';
+            const response = await fetchWithAuth(endpoint);
+
+            if (!response.ok) {
+                throw new Error('No se pudieron cargar las donaciones.');
+            }
+            
+            const donations = await response.json();
+
+            if (role === 'donador') {
+                renderDonorDonations(donations);
+            } else {
+                renderRecipientDonations(donations);
+            }
+
+        } catch (error) {
+            listElement.innerHTML = `<p class="text-red-500">Error al cargar las donaciones.</p>`;
+            console.error('Error en loadAndRenderDonations:', error);
+        }
+    }
+
 
     // --- 3. LÓGICA DEL ROL: DONADOR ---
 
@@ -197,47 +324,35 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Crear el objeto 'donativo' según tu BD
-        const newDonativo = {
-            // 'donador' se debería asignar en el backend usando el token
-            punto_reunion,
-            productos
-            // 'fecha_ingreso' también debería asignarla el backend
-        };
+        const donationData = { punto_reunion, productos };
+        const editId = document.getElementById('edit-donation-id').value;
+        const method = editId ? 'PUT' : 'POST';
+        const endpoint = editId ? `/donaciones/${editId}` : '/donaciones';
 
         try {
-            const response = await fetchWithAuth('/donativos', {
-                method: 'POST',
+            const response = await fetchWithAuth(endpoint, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newDonativo),
+                body: JSON.stringify(donationData),
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || 'Error al crear la donación.');
+                throw new Error(errorData.message || `Error al ${editId ? 'actualizar' : 'crear'} la donación.`);
             }
 
             // Éxito
             modal.classList.add('hidden'); // Ocultar modal
             addDonationForm.reset(); // Limpiar formulario
+            document.getElementById('edit-donation-id').value = ''; // Limpiar ID de edición
             productFieldsContainer.innerHTML = ''; // Limpiar productos
             addProductField(); // Dejar un campo de producto listo
             
-            fetchDonorDonations(); // Recargar la lista de donaciones
+            loadAndRenderDonations('donador'); // Recargar la lista de donaciones
+            alert(`¡Donación ${editId ? 'actualizada' : 'creada'} con éxito!`);
 
         } catch (error) {
             modalMessage.textContent = error.message;
-        }
-    }
-
-    async function fetchDonorDonations() {
-        try {
-            // Endpoint que devuelve solo las donaciones del usuario autenticado
-            const response = await fetchWithAuth('/donativos/mis-donativos'); 
-            const donations = await response.json();
-            renderDonorDonations(donations);
-        } catch (error) {
-            donorDonationsList.innerHTML = `<p class="text-red-500">Error al cargar tus donaciones.</p>`;
         }
     }
 
@@ -249,24 +364,35 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        donations.forEach(donativo => {
+        donations.forEach(donacion => {
             const card = document.createElement('div');
+            card.id = `donacion-${donacion._id}`; // ID para poder eliminarlo de la UI
             card.className = 'border rounded-lg p-4 shadow-sm bg-gray-50';
             
-            const productosHtml = donativo.productos.map(p => `
-                <li class="flex justify-between items-center text-sm py-1">
-                    <span>${p.cantidad} x ${p.tipo} (${p.descripcion || 'N/D'}) - Cad: ${p.fecha_caducidad}</span>
-                    <span class="font-medium ${p.entregado ? 'text-green-600' : 'text-yellow-600'}">
-                        ${p.entregado ? 'Entregado' : 'Pendiente'}
-                    </span>
-                </li>
+            const productosHtml = donacion.productos.map(p => `
+                <li class="text-sm py-1">- ${p.cantidad} x ${p.tipo} (${p.descripcion || 'N/D'})</li>
             `).join('');
 
+            const statusClass = donacion.estado === 'disponible' ? 'text-green-600' : 'text-yellow-600';
+            const statusText = donacion.estado.charAt(0).toUpperCase() + donacion.estado.slice(1);
+
             card.innerHTML = `
-                <p class="text-sm text-gray-500">ID Donación: ${donativo.id}</p>
-                <p class="font-semibold text-gray-800">Punto de Reunión: ${donativo.punto_reunion}</p>
-                <p class="text-sm text-gray-600">Fecha de Ingreso: ${new Date(donativo.fecha_ingreso).toLocaleDateString()}</p>
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-semibold text-gray-800">Punto de Reunión: ${donacion.punto_reunion}</p>
+                        <p class="text-sm text-gray-500">ID: ${donacion._id}</p>
+                        <p class="text-sm text-gray-600">Fecha: ${new Date(donacion.fecha_creacion).toLocaleDateString()}</p>
+                    </div>
+                    <span class="font-bold ${statusClass}">${statusText}</span>
+                </div>
                 <ul class="mt-2 list-disc list-inside bg-white p-2 rounded">${productosHtml}</ul>
+                ${donacion.estado === 'disponible' ? 
+                `<div class="mt-2 text-right"> 
+                    <button class="text-sm font-medium text-blue-600 hover:text-blue-800 mr-4" onclick="editDonation('${donacion._id}')">Modificar</button>
+                    <button class="text-sm font-medium text-red-600 hover:text-red-800" onclick="deleteDonation('${donacion._id}')">Eliminar</button>
+                </div>` : 
+                (donacion.estado === 'reclamada' ? `<p class="text-sm text-gray-600 mt-2">Reclamada el ${new Date(donacion.fecha_reclamacion).toLocaleDateString()}</p>` : '')
+                }
             `;
             donorDonationsList.appendChild(card);
         });
@@ -274,17 +400,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- 4. LÓGICA DEL ROL: RECEPTOR ---
-
-    async function fetchAllDonations() {
-        try {
-            // Endpoint que devuelve TODAS las donaciones
-            const response = await fetchWithAuth('/donativos'); 
-            const donations = await response.json();
-            renderRecipientDonations(donations);
-        } catch (error) {
-            recipientDonationsList.innerHTML = `<p class="text-red-500">Error al cargar las donaciones disponibles.</p>`;
-        }
-    }
 
     function renderRecipientDonations(donations) {
         recipientDonationsList.innerHTML = '';
@@ -294,23 +409,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Agrupar donaciones por donador (según tu requisito)
-        const groupedByDonor = donations.reduce((acc, donativo) => {
-            const donorName = donativo.donador.nombre || donativo.donador; // Asumiendo que 'donador' es un objeto o un string
+        const groupedByDonor = donations.reduce((acc, donacion) => {
+            const donorName = donacion.donador ? donacion.donador.nombre : 'Donador Anónimo';
             if (!acc[donorName]) {
                 acc[donorName] = [];
             }
-            acc[donorName].push(donativo);
+            acc[donorName].push(donacion);
             return acc;
         }, {});
 
-
-        // Renderizar por cada grupo de donador
         for (const donorName in groupedByDonor) {
             const groupContainer = document.createElement('div');
             groupContainer.className = 'mb-6';
             
-            // Título del grupo de donador
             const title = document.createElement('h2');
             title.className = 'text-xl font-semibold text-emerald-700 mb-2 border-b pb-1';
             title.textContent = `Donaciones de: ${donorName}`;
@@ -319,37 +430,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const donationCardsContainer = document.createElement('div');
             donationCardsContainer.className = 'space-y-4';
 
-            // Renderizar cada donación de ese donador
-            groupedByDonor[donorName].forEach(donativo => {
+            groupedByDonor[donorName].forEach(donacion => {
                 const card = document.createElement('div');
+                card.id = `donacion-${donacion._id}`;
                 card.className = 'border rounded-lg p-4 shadow-sm bg-gray-50';
 
-                const productosHtml = donativo.productos.map(p => {
-                    // Botón de solicitar (solo si no está entregado)
-                    const buttonHtml = p.entregado
-                        ? `<button class="text-sm font-medium text-gray-500" disabled>Solicitado</button>`
-                        : `<button class="solicitar-btn text-sm font-medium text-emerald-600 hover:text-emerald-800" 
-                                    data-donativo-id="${donativo.id}" 
-                                    data-producto-id="${p.id}">
-                                Solicitar
-                          </button>`;
+                const productosHtml = donacion.productos.map(p => `
+                    <li class="text-sm py-1">- ${p.cantidad} x ${p.tipo} (${p.descripcion || 'N/D'})</li>
+                `).join('');
 
-                    return `
-                        <li class="flex justify-between items-center py-1">
-                            <div>
-                                <span class="text-sm">${p.cantidad} x ${p.tipo} (${p.descripcion || 'N/D'})</span>
-                                <br>
-                                <span class="text-xs text-gray-500">Cad: ${p.fecha_caducidad}</span>
-                            </div>
-                            ${buttonHtml}
-                        </li>
-                    `;
-                }).join('');
+                const buttonHtml = `
+                    <button class="reclamar-btn bg-emerald-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-emerald-700 transition duration-300" 
+                            data-donacion-id="${donacion._id}">
+                        Reclamar Donación
+                    </button>
+                `;
 
                 card.innerHTML = `
-                    <p class="font-semibold text-gray-800">Punto de Reunión: ${donativo.punto_reunion}</p>
-                    <p class="text-sm text-gray-600">Fecha de Ingreso: ${new Date(donativo.fecha_ingreso).toLocaleDateString()}</p>
-                    <ul class="mt-2 bg-white p-2 rounded divide-y divide-gray-200">${productosHtml}</ul>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-semibold text-gray-800">Punto de Reunión: ${donacion.punto_reunion}</p>
+                            <p class="text-sm text-gray-600">Fecha: ${new Date(donacion.fecha_creacion).toLocaleDateString()}</p>
+                        </div>
+                        <div class="text-right">
+                            ${buttonHtml}
+                        </div>
+                    </div>
+                    <ul class="mt-2 list-disc list-inside bg-white p-2 rounded">${productosHtml}</ul>
                 `;
                 donationCardsContainer.appendChild(card);
             });
@@ -358,17 +465,16 @@ document.addEventListener('DOMContentLoaded', () => {
             recipientDonationsList.appendChild(groupContainer);
         }
 
-        // Agregar Event Listeners a todos los botones de "Solicitar"
-        recipientDonationsList.querySelectorAll('.solicitar-btn').forEach(button => {
-            button.addEventListener('click', handleProductRequest);
+        recipientDonationsList.querySelectorAll('.reclamar-btn').forEach(button => {
+            button.addEventListener('click', handleClaimDonation);
         });
     }
 
-    async function handleProductRequest(e) {
+    async function handleClaimDonation(e) {
         const button = e.target;
-        const { donativoId, productoId } = button.dataset;
+        const { donacionId } = button.dataset;
 
-        if (!confirm('¿Estás seguro de que deseas solicitar este producto? Esta acción no se puede deshacer.')) {
+        if (!confirm('¿Estás seguro de que deseas reclamar esta donación completa? Esta acción no se puede deshacer.')) {
             return;
         }
 
@@ -376,26 +482,88 @@ document.addEventListener('DOMContentLoaded', () => {
         button.textContent = 'Procesando...';
 
         try {
-            // Este endpoint en el backend debe cambiar 'entregado' a 'true'
-            const response = await fetchWithAuth(`/donativos/${donativoId}/productos/${productoId}/solicitar`, {
-                method: 'PATCH', // Usamos PATCH para actualizar parcialmente
+            const response = await fetchWithAuth(`/donaciones/${donacionId}/reclamar`, {
+                method: 'PUT',
             });
 
             if (!response.ok) {
-                throw new Error('No se pudo procesar la solicitud.');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'No se pudo procesar la solicitud.');
             }
 
-            // Éxito: Cambiar el botón a "Solicitado"
-            button.textContent = 'Solicitado';
-            button.classList.remove('text-emerald-600', 'hover:text-emerald-800');
-            button.classList.add('text-gray-500');
-            // No es necesario recargar todo, solo actualizamos el botón.
+            // Éxito: Recargar la lista de donaciones para que desaparezca la reclamada
+            await loadAndRenderDonations('receptor');
+            alert('¡Donación reclamada con éxito!');
             
         } catch (error) {
-            console.error('Error al solicitar producto:', error);
+            console.error('Error al reclamar donación:', error);
             alert('Error: ' + error.message);
             button.disabled = false;
-            button.textContent = 'Solicitar'; // Revertir si falla
+            button.textContent = 'Reclamar Donación'; // Revertir si falla
+        }
+    }
+
+    // --- FUNCIONES DE MODIFICACIÓN Y ELIMINACIÓN DE DONACIONES ---
+
+    window.editDonation = async function(donacionId) {
+        // Buscar la donación en la lista ya cargada para no hacer otro fetch
+        const response = await fetchWithAuth(`/donaciones/${donacionId}`);
+        if(!response.ok){
+            alert("Error al cargar los datos de la donación para editar.");
+            return;
+        }
+        const donacion = await response.json();
+
+        if (!donacion) {
+            alert("Error: No se encontraron los datos de la donación.");
+            return;
+        }
+
+        // Cambiar título y botón del modal
+        modal.querySelector('h3').textContent = 'Modificar Donación';
+        modal.querySelector('button[type="submit"]').textContent = 'Guardar Cambios';
+
+        // Rellenar los campos
+        document.getElementById('edit-donation-id').value = donacion._id;
+        document.getElementById('punto_reunion').value = donacion.punto_reunion;
+
+        // Limpiar y rellenar productos
+        productFieldsContainer.innerHTML = '';
+        donacion.productos.forEach(p => {
+            addProductField(); // Crea un nuevo campo de producto
+            const newItem = productFieldsContainer.lastElementChild;
+            newItem.querySelector('.product-tipo').value = p.tipo;
+            newItem.querySelector('.product-cantidad').value = p.cantidad;
+            newItem.querySelector('.product-caducidad').value = p.fecha_caducidad.split('T')[0]; // Formato YYYY-MM-DD
+            newItem.querySelector('.product-descripcion').value = p.descripcion;
+        });
+
+        modal.classList.remove('hidden');
+    }
+
+    window.deleteDonation = async function(donacionId) {
+        if (!confirm('¿Estás seguro de que quieres eliminar esta donación? Esta acción es permanente.')) {
+            return;
+        }
+
+        try {
+            const response = await fetchWithAuth(`/donaciones/${donacionId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'No se pudo eliminar la donación.');
+            }
+
+            // Recargar la lista de donaciones para reflejar la eliminación
+            await loadAndRenderDonations('donador');
+
+            alert('¡Donación eliminada con éxito!');
+
+        } catch (error) {
+            console.error('Error al eliminar donación:', error);
+            alert('Error: ' + error.message);
         }
     }
 
