@@ -345,10 +345,18 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.classList.add('hidden'); // Ocultar modal
             addDonationForm.reset(); // Limpiar formulario
             document.getElementById('edit-donation-id').value = ''; // Limpiar ID de edición
-            productFieldsContainer.innerHTML = ''; // Limpiar productos
-            addProductField(); // Dejar un campo de producto listo
+
+            // Restaurar los campos de producto a su estado inicial
+            productFieldsContainer.innerHTML = `
+                <div class="product-item grid grid-cols-1 md:grid-cols-4 gap-3 p-3 border rounded-lg">
+                    <input type="text" class="product-tipo w-full px-3 py-2 border rounded-lg" placeholder="Tipo (Ej: Arroz, Frijol)" required>
+                    <input type="number" class="product-cantidad w-full px-3 py-2 border rounded-lg" placeholder="Cantidad (Ej: 5)" min="1" required>
+                    <input type="date" class="product-caducidad w-full px-3 py-2 border rounded-lg" required>
+                    <input type="text" class="product-descripcion w-full px-3 py-2 border rounded-lg" placeholder="Descripción (Ej: Bolsa 1kg)">
+                </div>
+            `;
             
-            loadAndRenderDonations('donador'); // Recargar la lista de donaciones
+            await loadAndRenderDonations('donador'); // Recargar la lista de donaciones
             alert(`¡Donación ${editId ? 'actualizada' : 'creada'} con éxito!`);
 
         } catch (error) {
@@ -580,6 +588,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...options,
             headers,
+            cache: 'no-cache', // Prevenir el cacheo de las respuestas
         });
 
         return response;
