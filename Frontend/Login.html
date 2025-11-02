@@ -19,14 +19,7 @@
     <script src="app.js" defer></script>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
-    <!-- La clase 'bg-gray-100' que estaba aquí ya no es necesaria 
-         porque 'style.css' ahora controla el fondo del body -->
 
-    <!-- ===== CAMBIO CLAVE AQUÍ ===== -->
-    <!-- Se cambió 'bg-white' por 'bg-white/90' (blanco con 90% de opacidad) -->
-    <!-- Se añadió 'backdrop-blur-sm' para un efecto de "vidrio esmerilado" -->
-
-    <!-- <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-lg"> -->
     <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-lg">
 
         <!-- ===== VISTA DE LOGIN ===== -->
@@ -79,6 +72,17 @@
                         <option value="persona">Persona Física</option>
                     </select>
                 </div>
+
+                <!-- Paso 2: Selección de Función -->
+                <div class="mb-4">
+                    <label for="reg-tipo-rol" class="block text-sm font-medium text-gray-700 mb-1">Función</label>
+                    <select id="reg-tipo-rol" name="reg-tipo-rol" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500" required>
+                        <option value="">-- Selecciona tu función --</option>
+                        <option value="donador">Quiero Donar</option>
+                        <option value="receptor">Quiero Recibir Donaciones</option>
+                    </select>
+                </div>
+
 
                 <!-- Contenedor para campos dinámicos -->
                 <div id="form-fields-container" class="mt-4 space-y-4">

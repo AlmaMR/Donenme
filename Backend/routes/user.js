@@ -26,7 +26,7 @@ router.post('/login', loginUser);
 // 3. Nueva Ruta Protegida (Privada)
 // Nota cómo 'authMiddleware' va en medio:
 // 1. Petición -> 2. authMiddleware (guardia) -> 3. getUserProfile (controlador)
-router.get('/profile', authMiddleware, getUserProfile);
+router.get('/me', authMiddleware, getUserProfile);
 
 
 module.exports = router;

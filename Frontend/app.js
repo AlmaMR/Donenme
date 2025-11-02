@@ -132,8 +132,10 @@ document.addEventListener('DOMContentLoaded', () => {
         registerMessage.className = 'text-center text-blue-500 my-4';
 
         const tipo = userTypeSelect.value;
+        const tipoRol = document.getElementById('reg-tipo-rol').value;
         let endpoint = '';
         let payload = {
+            tipo_rol: tipoRol, // <-- Nuevo campo añadido
             contacto: document.getElementById('reg-telefono').value,
             direccion: document.getElementById('reg-direccion').value,
             contrasena: password
@@ -229,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showLoginMessage('¡Inicio de sesión exitoso! Redirigiendo...');
                 localStorage.setItem('donenme_token', data.token);
                 window.location.href = 'dashboard.html'; // Descomentar para redirigir
-                // window.location.href = 'dash.html'; // Descomentar para redirigir
+                 //window.location.href = 'dash.html'; // Descomentar para redirigir
             } else {
                 showLoginMessage(data.message, true);
             }

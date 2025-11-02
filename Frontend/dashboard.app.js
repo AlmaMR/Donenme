@@ -28,6 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const addDonationForm = document.getElementById('add-donation-form');
     const modalMessage = document.getElementById('modal-message');
 
+    // Elementos del menú de usuario
+    const userMenuButton = document.getElementById('user-menu-button');
+    const userMenu = document.getElementById('user-menu');
+    const editProfileButton = document.getElementById('edit-profile-button');
+
     let userToken = null; // Almacenará el token del usuario
 
     // --- 1. INICIALIZACIÓN Y AUTENTICACIÓN ---
@@ -37,9 +42,27 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Si no hay token, no debe estar aquí. Redirigir a login.
         if (!userToken) {
-            window.location.href = 'donenme.html';
+            window.location.href = 'Login.html'; // Corregido para apuntar a Login.html
             return;
         }
+
+        // --- Lógica del Menú de Usuario ---
+        userMenuButton.addEventListener('click', () => {
+            userMenu.classList.toggle('hidden');
+        });
+
+        editProfileButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            alert('La funcionalidad para modificar el perfil se implementará próximamente.');
+            userMenu.classList.add('hidden');
+        });
+
+        // Cerrar el menú si se hace clic fuera de él
+        window.addEventListener('click', (e) => {
+            if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
+                userMenu.classList.add('hidden');
+            }
+        });
 
         // Agregar listener de logout
         logoutButton.addEventListener('click', logout);
@@ -55,7 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetchWithAuth(`/users/me`); // Ejemplo: /api/users/me
 
             if (!response.ok) {
-                throw new Error('Sesión inválida o expirada.');
+                // Intentamos obtener más detalles del error desde el cuerpo de la respuesta
+                const errorData = await response.json().catch(() => ({ message: response.statusText }));
+                throw new Error(`Error del servidor: ${response.status}. ${errorData.message || 'No se pudo obtener el perfil.'}`);
             }
 
             const userData = await response.json();
@@ -69,6 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Error al verificar sesión:', error);
+            // Mostramos el error al usuario en una alerta para diagnóstico
+            alert(`Error de autenticación: ${error.message}`);
             // Si el token es inválido, limpiar y redirigir
             logout();
         }
@@ -76,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function logout() {
         localStorage.removeItem('donenme_token');
-        window.location.href = 'donenme.html';
+        window.location.href = 'Login.html'; // Corregido para apuntar a Login.html
     }
 
     // --- 2. CONFIGURACIÓN DE UI POR ROL ---

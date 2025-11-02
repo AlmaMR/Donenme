@@ -11,13 +11,14 @@ const jwt = require('jsonwebtoken'); // Para el login
 // ===============================================
 
 const registerEmpresa = async (req, res) => {
-    const { nombre, contacto, contrasena, direccion, rfc } = req.body;
+    const { nombre, contacto, contrasena, direccion, rfc, tipo_rol } = req.body; // <-- Se recibe tipo_rol
     const rol = "empresa";
     try {
         const hashedPassword = await bcrypt.hash(contrasena, 10);
         const userDoc = {
             _id: uuidv4(),
             rol,
+            tipo_rol, // <-- Se guarda tipo_rol
             nombre,
             contacto,
             contrasena: hashedPassword,
@@ -33,13 +34,14 @@ const registerEmpresa = async (req, res) => {
 };
 
 const registerONG = async (req, res) => {
-    const { nombre, contacto, contrasena, direccion, cluni } = req.body;
+    const { nombre, contacto, contrasena, direccion, cluni, tipo_rol } = req.body; // <-- Se recibe tipo_rol
     const rol = "ong";
     try {
         const hashedPassword = await bcrypt.hash(contrasena, 10);
         const userDoc = {
             _id: uuidv4(),
             rol,
+            tipo_rol, // <-- Se guarda tipo_rol
             nombre,
             contacto,
             contrasena: hashedPassword,
@@ -55,13 +57,14 @@ const registerONG = async (req, res) => {
 };
 
 const registerPersonaFisica = async (req, res) => {
-    const { nombre, contacto, contrasena, direccion, curp } = req.body;
+    const { nombre, contacto, contrasena, direccion, curp, tipo_rol } = req.body; // <-- Se recibe tipo_rol
     const rol = "persona_fisica";
     try {
         const hashedPassword = await bcrypt.hash(contrasena, 10);
         const userDoc = {
             _id: uuidv4(),
             rol,
+            tipo_rol, // <-- Se guarda tipo_rol
             nombre,
             contacto,
             contrasena: hashedPassword,
@@ -77,13 +80,14 @@ const registerPersonaFisica = async (req, res) => {
 };
 
 const registerGobierno = async (req, res) => {
-    const { nombre, contacto, contrasena, direccion, dependencia } = req.body;
+    const { nombre, contacto, contrasena, direccion, dependencia, tipo_rol } = req.body; // <-- Se recibe tipo_rol
     const rol = "gobierno";
     try {
         const hashedPassword = await bcrypt.hash(contrasena, 10);
         const userDoc = {
             _id: uuidv4(),
             rol,
+            tipo_rol, // <-- Se guarda tipo_rol
             nombre,
             contacto,
             contrasena: hashedPassword,
@@ -142,7 +146,7 @@ const loginUser = async (req, res) => {
 
         const payload = {
             id: user._id,
-            rol: user.rol
+            rol: user.rol // El rol en el token sigue siendo el tipo de usuario, no la función
         };
 
         const token = jwt.sign(
@@ -156,7 +160,7 @@ const loginUser = async (req, res) => {
             token: token,
             user: {
                 id: user._id,
-                rol: user.rol,
+                rol: user.tipo_rol, // <-- Devolvemos el tipo_rol para el frontend
                 nombre: user.nombre
             }
         });
@@ -181,15 +185,12 @@ const getUserProfile = async (req, res) => {
 
         // ¡Importante! Nunca devuelvas la contraseña
         res.status(200).json({
-            status: "success",
-            user: {
-                id: userDoc._id,
-                rol: userDoc.rol,
-                nombre: userDoc.nombre,
-                contacto: userDoc.contacto,
-                direccion: userDoc.direccion
-                // ... (puedes agregar otros campos seguros como rfc, cluni, etc.)
-            }
+            id: userDoc._id,
+            rol: userDoc.tipo_rol, // <-- Enviamos el rol de función (donador/receptor)
+            nombre: userDoc.nombre,
+            contacto: userDoc.contacto,
+            direccion: userDoc.direccion
+            // ... (puedes agregar otros campos seguros como rfc, cluni, etc.)
         });
     } catch (error) {
         console.error("Error al buscar perfil:", error);
@@ -211,5 +212,5 @@ module.exports = {
     registerPersonaFisica,
     registerGobierno,
     loginUser,
-    getUserProfile // <-- Agregar la nueva función
+    getUserProfile
 };
