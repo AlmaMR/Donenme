@@ -10,7 +10,9 @@ const {
     getMisDonaciones,
     reclamarDonacion,
     updateDonacion,
-    deleteDonacion
+    deleteDonacion,
+    esperarDonacion,
+    getDonacionById
 } = require('../controllers/donaciones.js');
 
 // Todas las rutas de donaciones están protegidas y requieren autenticación
@@ -27,6 +29,8 @@ router.get('/mis-donaciones', getMisDonaciones);
 
 // PUT /api/donaciones/:id/reclamar -> Reclamar una donación
 router.put('/:id/reclamar', reclamarDonacion);
+router.put('/:id/esperar', esperarDonacion); //pone la donacion en procesando...
+
 
 // PUT /api/donaciones/:id -> Modificar una donación propia
 router.put('/:id', updateDonacion);

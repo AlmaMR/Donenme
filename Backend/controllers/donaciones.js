@@ -45,7 +45,7 @@ const getDonacionesDisponibles = async (req, res) => {
         const query = {
             selector: {
                 tipo: "donativo",
-                estado: 'disponible'
+                estado: 'disponible' && "Procesando..."
             }
         };
         const result = await donenme_db.find(query);
@@ -71,6 +71,7 @@ const getDonacionesDisponibles = async (req, res) => {
         res.status(500).json({ message: "Error interno del servidor" });
     }
 };
+
 
 // ===============================================
 // OBTENER LAS DONACIONES DE UN USUARIO (MIS DONACIONES)
@@ -99,7 +100,39 @@ const getMisDonaciones = async (req, res) => {
 // ===============================================
 // RECLAMAR UNA DONACIÓN
 // ===============================================
+
 const reclamarDonacion = async (req, res) => {
+    const donacionId = req.params.id;
+    const receptorId = req.user.id; // ID del usuario que reclama
+
+    try {
+        const donacion = await donenme_db.get(donacionId);
+
+        // Verificar que el que reclama no sea el mismo que donó
+
+
+        // Verificar que la donación esté disponible
+        if (donacion.estado !== 'Procesando...') {
+            return res.status(400).json({ message: `Esta donación ya fue reclamada y su estado es '${donacion.estado}'.` });
+        }
+
+        // Actualizar el estado y guardar el ID del receptor
+        donacion.estado = 'reclamada';
+        donacion.fecha_reclamacion = new Date().toISOString();
+
+        await donenme_db.insert(donacion);
+
+        res.status(200).json({ message: "Donación reclamada con éxito", donacion });
+
+    } catch (error) {
+        if (error.statusCode === 404) {
+            return res.status(404).json({ message: "Donación no encontrada." });
+        }
+        console.error("Error al reclamar donación:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
+const esperarDonacion = async (req, res) => {
     const donacionId = req.params.id;
     const receptorId = req.user.id; // ID del usuario que reclama
 
@@ -117,7 +150,7 @@ const reclamarDonacion = async (req, res) => {
         }
 
         // Actualizar el estado y guardar el ID del receptor
-        donacion.estado = 'reclamada';
+        donacion.estado = 'Procesando...';
         donacion.receptorId = receptorId;
         donacion.fecha_reclamacion = new Date().toISOString();
 
@@ -213,5 +246,6 @@ module.exports = {
     getMisDonaciones, // <-- Exportar la nueva función
     reclamarDonacion,
     updateDonacion,
-    deleteDonacion
+    deleteDonacion,
+    esperarDonacion
 };

@@ -399,10 +399,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="text-sm font-medium text-blue-600 hover:text-blue-800 mr-4" onclick="editDonation('${donacion._id}')">Modificar</button>
                     <button class="text-sm font-medium text-red-600 hover:text-red-800" onclick="deleteDonation('${donacion._id}')">Eliminar</button>
                 </div>` : 
-                (donacion.estado === 'reclamada' ? `<p class="text-sm text-gray-600 mt-2">Reclamada el ${new Date(donacion.fecha_reclamacion).toLocaleDateString()}</p>` : '')
+                (donacion.estado === 'reclamada' ? `<p class="text-sm text-gray-600 mt-2">Reclamada el ${new Date(donacion.fecha_reclamacion).toLocaleDateString()}</p>` :
+                 `                    <button class="aceptar-btn text-sm font-medium text-blue-600 hover:text-blue-800 mr-4" data-donacion-id="${donacion._id}">¿Aceptar?</button>`)
                 }
             `;
             donorDonationsList.appendChild(card);
+            donorDonationsList.querySelectorAll('.aceptar-btn').forEach(button => {
+            button.addEventListener('click', confirmDonation);
+        });
         });
     }
 
@@ -446,14 +450,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const productosHtml = donacion.productos.map(p => `
                     <li class="text-sm py-1">- ${p.cantidad} x ${p.tipo} (${p.descripcion || 'N/D'})</li>
                 `).join('');
-
-                const buttonHtml = `
+                const buttonHtml = donacion.estado === "disponible " ?`
                     <button class="reclamar-btn bg-emerald-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-emerald-700 transition duration-300" 
                             data-donacion-id="${donacion._id}">
                         Reclamar Donación
                     </button>
-                `;
-
+                ` : `<span class="bg-red-600 text-white px-4 py-4 rounded-md font-semibold cursor-default select-none">
+                        Esperando Respuesta...
+                     </span>`;
+            
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div>
@@ -476,18 +481,20 @@ document.addEventListener('DOMContentLoaded', () => {
         recipientDonationsList.querySelectorAll('.reclamar-btn').forEach(button => {
             button.addEventListener('click', handleClaimDonation);
         });
-    }
 
-    async function handleClaimDonation(e) {
+    }
+   //Confirmar donacion
+    async function confirmDonation(e) {
         const button = e.target;
         const { donacionId } = button.dataset;
-
-        if (!confirm('¿Estás seguro de que deseas reclamar esta donación completa? Esta acción no se puede deshacer.')) {
+        
+         if (!confirm('¿Estás seguro de que deseas aceptar la peticion de donación? Esta acción no se puede deshacer.')) {
             return;
         }
 
+       
         button.disabled = true;
-        button.textContent = 'Procesando...';
+        button.textContent = 'Reclamada';
 
         try {
             const response = await fetchWithAuth(`/donaciones/${donacionId}/reclamar`, {
@@ -500,8 +507,60 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Éxito: Recargar la lista de donaciones para que desaparezca la reclamada
+            await loadAndRenderDonations('donador');
+            
+        } catch (error) {
+            console.error('Error al reclamar donación:', error);
+            alert('Error: ' + error.message);
+            button.disabled = false;
+            button.textContent = 'Reclamar Donación'; // Revertir si falla
+        }
+    }
+
+    async function handleClaimDonation(e) {
+        const button = e.target;
+        const { donacionId } = button.dataset;
+         try {
+            const response = await fetchWithAuth(`/donaciones/${donacionId}/esperar`, {
+                method: 'PUT',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'No se pudo procesar la solicitud.');
+            }
+
+            // Éxito: Recargar la lista de donaciones para que desaparezca la reclamada
             await loadAndRenderDonations('receptor');
-            alert('¡Donación reclamada con éxito!');
+            alert('Esperando respuesta del Donador');
+            
+        } catch (error) {
+            console.error('Error al reclamar donación:', error);
+            alert('Error: ' + error.message);
+            button.disabled = false;
+            button.textContent = 'Reclamar Donación'; // Revertir si falla
+        }
+    
+        if (!confirm('¿Estás seguro de que deseas reclamar esta donación completa? Esta acción no se puede deshacer.')) {
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = 'Procesando...';
+
+        try {
+            const response = await fetchWithAuth(`/donaciones/${donacionId}/esperar`, {
+                method: 'PUT',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'No se pudo procesar la solicitud.');
+            }
+
+            // Éxito: Recargar la lista de donaciones para que desaparezca la reclamada
+            await loadAndRenderDonations('receptor');
+            alert('Esperando respuesta del Donador');
             
         } catch (error) {
             console.error('Error al reclamar donación:', error);
