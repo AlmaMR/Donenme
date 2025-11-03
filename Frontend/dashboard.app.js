@@ -450,14 +450,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const productosHtml = donacion.productos.map(p => `
                     <li class="text-sm py-1">- ${p.cantidad} x ${p.tipo} (${p.descripcion || 'N/D'})</li>
                 `).join('');
-                const buttonHtml = donacion.estado === "disponible " ?`
+                const buttonHtml = donacion.estado === "disponible" ?`
                     <button class="reclamar-btn bg-emerald-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-emerald-700 transition duration-300" 
                             data-donacion-id="${donacion._id}">
                         Reclamar Donación
                     </button>
-                ` : `<span class="bg-red-600 text-white px-4 py-4 rounded-md font-semibold cursor-default select-none">
+                ` : donacion.estado=== "Procesando..."?`<span class="bg-red-600 text-white px-4 py-4 rounded-md font-semibold cursor-default select-none">
                         Esperando Respuesta...
-                     </span>`;
+                     </span>`:"";
             
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
@@ -520,27 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleClaimDonation(e) {
         const button = e.target;
         const { donacionId } = button.dataset;
-         try {
-            const response = await fetchWithAuth(`/donaciones/${donacionId}/esperar`, {
-                method: 'PUT',
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'No se pudo procesar la solicitud.');
-            }
-
-            // Éxito: Recargar la lista de donaciones para que desaparezca la reclamada
-            await loadAndRenderDonations('receptor');
-            alert('Esperando respuesta del Donador');
-            
-        } catch (error) {
-            console.error('Error al reclamar donación:', error);
-            alert('Error: ' + error.message);
-            button.disabled = false;
-            button.textContent = 'Reclamar Donación'; // Revertir si falla
-        }
-    
+        
         if (!confirm('¿Estás seguro de que deseas reclamar esta donación completa? Esta acción no se puede deshacer.')) {
             return;
         }

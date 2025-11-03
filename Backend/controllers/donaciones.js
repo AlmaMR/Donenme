@@ -113,7 +113,7 @@ const getDonacionesDisponibles = async (req, res) => {
         const query = {
             selector: {
                 tipo: "donativo",
-                estado: 'disponible' && "Procesando..."
+                estado: { $in: ['Procesando...', 'disponible'] }
             }
         };
         const result = await donenme_db.find(query);
