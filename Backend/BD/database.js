@@ -34,7 +34,7 @@ const initializeDatabase = async () => {
 
         // Asegurar los índices necesarios
         await ensureIndex({ index: { fields: ['contacto'] }, name: 'contacto-index' }, 'contacto');
-        await ensureIndex({ index: { fields: ['tipo', 'donadorId', 'fecha_creacion'] }, name: 'donaciones-por-donador-index' }, 'donaciones por donador');
+        await ensureIndex({ index: { fields: ['tipo', 'donadorId', 'borrado', 'fecha_ingreso'] }, name: 'donaciones-por-donador-fecha-index' }, 'donaciones por donador por fecha');
 
     } catch (err) {
         if (err.statusCode === 404) {

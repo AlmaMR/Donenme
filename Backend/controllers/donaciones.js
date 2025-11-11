@@ -5,11 +5,29 @@ const donenme_db = require('../BD/database');
 const { v4: uuidv4 } = require('uuid');
 
 // ===============================================
+// GET A DONATION BY ID
+// ===============================================
+const getDonacionById = async (req, res) => {
+    const donacionId = req.params.id;
+
+    try {
+        const donacion = await donenme_db.get(donacionId);
+        res.status(200).json(donacion);
+    } catch (error) {
+        if (error.statusCode === 404) {
+            return res.status(404).json({ message: "Donación no encontrada." });
+        }
+        console.error("Error al obtener donación por ID:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
+
+// ===============================================
 // CREAR UNA NUEVA DONACIÓN
 // ===============================================
 const createDonacion = async (req, res) => {
     const donadorId = req.user.id; // ID del usuario autenticado
-    const { productos, punto_reunion } = req.body;
+    const { productos, punto_reunion, fecha_encuentro, hora_encuentro } = req.body;
 
     if (!productos || !punto_reunion || !Array.isArray(productos) || productos.length === 0) {
         return res.status(400).json({ message: "Datos incompletos. Se requieren productos y punto de reunión." });
@@ -21,35 +39,23 @@ const createDonacion = async (req, res) => {
     for (const p of productos) {
 
         // --- INICIO DE LA VALIDACIÓN DE FECHA MODIFICADA ---
-        // Validar que la caducidad no sea en el pasado.
-        // El usuario no puede seleccionar un día anterior al actual.
-        
-        // 1. Obtenemos el timestamp de hoy a las 00:00:00 (medianoche)
-        //    en la zona horaria local del servidor.
         const todayTimestamp = new Date().setHours(0, 0, 0, 0);
-
-        // 2. p.caducidad viene del input <input type="date">, 
-        //    por lo que es un string "YYYY-MM-DD".
-        //    Al añadir 'T00:00:00', nos aseguramos de que new Date()
-        //    lo interprete como "medianoche en la zona horaria local"
-        //    y no como "medianoche UTC" (que podría ser el día anterior).
         const fechaCaducidad = new Date(p.fecha_caducidad + 'T00:00:00');
         const caducidadTimestamp = fechaCaducidad.getTime();
 
-        // 3. Comparamos los timestamps.
-        //    Si la fecha de caducidad es anterior a "hoy a medianoche", es inválida.
         if (caducidadTimestamp < todayTimestamp) {
             return res.status(400).json({ message: `La fecha de caducidad del producto "${p.tipo}" (${p.fecha_caducidad}) no puede ser anterior a hoy.` });
         }
         // --- FIN DE LA VALIDACIÓN DE FECHA MODIFICADA ---
 
         productosValidados.push({
+            id: uuidv4(), // Asignar un ID único al producto
             tipo: p.tipo,
             cantidad: parseInt(p.cantidad),
+            restantes: parseInt(p.cantidad), // Set restantes to cantidad
             fecha_caducidad: p.fecha_caducidad,
             descripcion: p.descripcion,
             entregado: false,
-            id: uuidv4() // Asignar un ID único al producto
         });
     }
 
@@ -58,13 +64,12 @@ const createDonacion = async (req, res) => {
             _id: uuidv4(),
             tipo: "donativo",
             donadorId,
-            receptorId: null, // Aún no ha sido reclamado
-            //productos: productos.map(p => ({ ...p, id: uuidv4() })), // Asignar un ID único a cada producto
             productos: productosValidados,
             punto_reunion,
-            estado: 'disponible', // Estado inicial
-            fecha_creacion: new Date().toISOString(),
-            fecha_reclamacion: null
+            fecha_encuentro,
+            hora_encuentro,
+            fecha_ingreso: new Date().toISOString(),
+            borrado: false,
         };
 
         await donenme_db.insert(nuevaDonacion);
@@ -75,35 +80,6 @@ const createDonacion = async (req, res) => {
         res.status(500).json({ message: "Error interno del servidor" });
     }
 };
-// const createDonacion = async (req, res) => {
-//     const donadorId = req.user.id; // ID del usuario autenticado
-//     const { productos, punto_reunion } = req.body;
-
-//     if (!productos || !punto_reunion || !Array.isArray(productos) || productos.length === 0) {
-//         return res.status(400).json({ message: "Datos incompletos. Se requieren productos y punto de reunión." });
-//     }
-
-//     try {
-//         const nuevaDonacion = {
-//             _id: uuidv4(),
-//             tipo: "donativo",
-//             donadorId,
-//             receptorId: null, // Aún no ha sido reclamado
-//             productos: productos.map(p => ({ ...p, id: uuidv4() })), // Asignar un ID único a cada producto
-//             punto_reunion,
-//             estado: 'disponible', // Estado inicial
-//             fecha_creacion: new Date().toISOString(),
-//             fecha_reclamacion: null
-//         };
-
-//         await donenme_db.insert(nuevaDonacion);
-//         res.status(201).json({ message: "Donación creada con éxito", donacion: nuevaDonacion });
-
-//     } catch (error) {
-//         console.error("Error al crear donación:", error);
-//         res.status(500).json({ message: "Error interno del servidor" });
-//     }
-// };
 
 // ===============================================
 // OBTENER DONACIONES DISPONIBLES (MARKETPLACE)
@@ -113,7 +89,12 @@ const getDonacionesDisponibles = async (req, res) => {
         const query = {
             selector: {
                 tipo: "donativo",
-                estado: { $in: ['Procesando...', 'disponible'] }
+                borrado: false,
+                "productos": {
+                    "$elemMatch": {
+                        "restantes": { "$gt": 0 }
+                    }
+                }
             }
         };
         const result = await donenme_db.find(query);
@@ -151,86 +132,15 @@ const getMisDonaciones = async (req, res) => {
         const query = {
             selector: {
                 tipo: "donativo",
-                donadorId: userId
-            },
-            sort: [{ "fecha_creacion": "desc" }]
+                donadorId: userId,
+                borrado: false
+            }
         };
         const result = await donenme_db.find(query);
         res.status(200).json(result.docs);
 
     } catch (error) {
         console.error("Error al obtener mis donaciones:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
-    }
-};
-
-
-// ===============================================
-// RECLAMAR UNA DONACIÓN
-// ===============================================
-
-const reclamarDonacion = async (req, res) => {
-    const donacionId = req.params.id;
-    const receptorId = req.user.id; // ID del usuario que reclama
-
-    try {
-        const donacion = await donenme_db.get(donacionId);
-
-        // Verificar que el que reclama no sea el mismo que donó
-
-
-        // Verificar que la donación esté disponible
-        if (donacion.estado !== 'Procesando...') {
-            return res.status(400).json({ message: `Esta donación ya fue reclamada y su estado es '${donacion.estado}'.` });
-        }
-
-        // Actualizar el estado y guardar el ID del receptor
-        donacion.estado = 'reclamada';
-        donacion.fecha_reclamacion = new Date().toISOString();
-
-        await donenme_db.insert(donacion);
-
-        res.status(200).json({ message: "Donación reclamada con éxito", donacion });
-
-    } catch (error) {
-        if (error.statusCode === 404) {
-            return res.status(404).json({ message: "Donación no encontrada." });
-        }
-        console.error("Error al reclamar donación:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
-    }
-};
-const esperarDonacion = async (req, res) => {
-    const donacionId = req.params.id;
-    const receptorId = req.user.id; // ID del usuario que reclama
-
-    try {
-        const donacion = await donenme_db.get(donacionId);
-
-        // Verificar que el que reclama no sea el mismo que donó
-        if (donacion.donadorId === receptorId) {
-            return res.status(403).json({ message: "No puedes reclamar tu propia donación." });
-        }
-
-        // Verificar que la donación esté disponible
-        if (donacion.estado !== 'disponible') {
-            return res.status(400).json({ message: `Esta donación ya fue reclamada y su estado es '${donacion.estado}'.` });
-        }
-
-        // Actualizar el estado y guardar el ID del receptor
-        donacion.estado = 'Procesando...';
-        donacion.receptorId = receptorId;
-        donacion.fecha_reclamacion = new Date().toISOString();
-
-        await donenme_db.insert(donacion);
-
-        res.status(200).json({ message: "Donación reclamada con éxito", donacion });
-
-    } catch (error) {
-        if (error.statusCode === 404) {
-            return res.status(404).json({ message: "Donación no encontrada." });
-        }
-        console.error("Error al reclamar donación:", error);
         res.status(500).json({ message: "Error interno del servidor" });
     }
 };
@@ -251,10 +161,19 @@ const updateDonacion = async (req, res) => {
             return res.status(403).json({ message: "Acción no permitida. No eres el propietario de esta donación." });
         }
 
-        // Regla de Negocio: Verificar que la donación esté disponible
-        if (donacion.estado !== 'disponible') {
-            return res.status(400).json({ message: "No se puede modificar una donación que ya no está disponible." });
+        // TODO: Implementar la lógica de no permitir la modificación si hay solicitudes aceptadas.
+        // Por ahora, se mantiene la lógica anterior.
+        const solicitudesQuery = {
+            selector: {
+                donacionId: donacionId,
+                estado: 'aceptada'
+            }
+        };
+        const solicitudes = await donenme_db.find(solicitudesQuery);
+        if (solicitudes.docs.length > 0) {
+            return res.status(400).json({ message: "No se puede modificar una donación que ya tiene solicitudes aceptadas." });
         }
+
 
         // Actualizar los campos permitidos
         if (productos) donacion.productos = productos;
@@ -274,7 +193,7 @@ const updateDonacion = async (req, res) => {
 };
 
 // ===============================================
-// ELIMINAR UNA DONACIÓN
+// ELIMINAR UNA DONACIÓN (SOFT DELETE)
 // ===============================================
 const deleteDonacion = async (req, res) => {
     const donacionId = req.params.id;
@@ -288,13 +207,9 @@ const deleteDonacion = async (req, res) => {
             return res.status(403).json({ message: "Acción no permitida. No eres el propietario de esta donación." });
         }
 
-        // Regla de Negocio: Verificar que la donación esté disponible
-        if (donacion.estado !== 'disponible') {
-            return res.status(400).json({ message: "No se puede eliminar una donación que ya no está disponible." });
-        }
-
-        // Eliminar el documento
-        await donenme_db.destroy(donacion._id, donacion._rev);
+        // Soft delete
+        donacion.borrado = true;
+        await donenme_db.insert(donacion);
 
         res.status(200).json({ message: "Donación eliminada con éxito." });
 
@@ -311,9 +226,8 @@ const deleteDonacion = async (req, res) => {
 module.exports = {
     createDonacion,
     getDonacionesDisponibles,
-    getMisDonaciones, // <-- Exportar la nueva función
-    reclamarDonacion,
+    getMisDonaciones,
     updateDonacion,
     deleteDonacion,
-    esperarDonacion
+    getDonacionById,
 };
