@@ -1,6 +1,5 @@
 // Backend/controllers/user.js
 
-require('dotenv').config();
 const donenme_db = require('../BD/database');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
@@ -10,97 +9,71 @@ const jwt = require('jsonwebtoken'); // Para el login
 // FUNCIONES SPRINT 1 (Registro)
 // ===============================================
 
-const registerEmpresa = async (req, res) => {
-    const { nombre, contacto, contrasena, direccion, rfc, tipo_rol } = req.body; // <-- Se recibe tipo_rol
-    const rol = "empresa";
+const register = async (req, res) => {
+    const { nombre, contacto, contrasena, direccion, rfc, cluni, curp, dependencia, tipo_rol, rol } = req.body;
+
+    if (!rol || !['empresa', 'ong', 'persona_fisica', 'gobierno'].includes(rol)) {
+        return res.status(400).json({ status: "error", message: "Rol de usuario no válido." });
+    }
+
     try {
+        // VERIFICAR SI EL USUARIO YA EXISTE
+        const existingUser = await donenme_db.find({
+            selector: { contacto: contacto },
+            limit: 1
+        });
+
+        if (existingUser.docs.length > 0) {
+            return res.status(409).json({ status: "error", message: "El contacto ya está registrado." });
+        }
+
         const hashedPassword = await bcrypt.hash(contrasena, 10);
         const userDoc = {
             _id: uuidv4(),
             rol,
-            tipo_rol, // <-- Se guarda tipo_rol
+            tipo_rol,
             nombre,
             contacto,
             contrasena: hashedPassword,
             direccion,
-            rfc,
             tipo: "usuario"
         };
+
+        // Añadir campos específicos del rol
+        if (rol === 'empresa') userDoc.rfc = rfc;
+        if (rol === 'ong') userDoc.cluni = cluni;
+        if (rol === 'persona_fisica') userDoc.curp = curp;
+        if (rol === 'gobierno') userDoc.dependencia = dependencia;
+
         await donenme_db.insert(userDoc);
-        res.status(201).json({ status: "success", message: "Empresa registrada" });
+
+        // Generar token para auto-login después del registro
+        const payload = {
+            id: userDoc._id,
+            rol: userDoc.rol
+        };
+
+        const token = jwt.sign(
+            payload,
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        res.status(201).json({
+            status: "success",
+            message: `${rol.charAt(0).toUpperCase() + rol.slice(1)} registrado correctamente.`,
+            token: token,
+            user: {
+                id: userDoc._id,
+                rol: userDoc.tipo_rol,
+                nombre: userDoc.nombre
+            }
+        });
     } catch (error) {
         res.status(500).json({ status: "error", message: error.message });
     }
 };
 
-const registerONG = async (req, res) => {
-    const { nombre, contacto, contrasena, direccion, cluni, tipo_rol } = req.body; // <-- Se recibe tipo_rol
-    const rol = "ong";
-    try {
-        const hashedPassword = await bcrypt.hash(contrasena, 10);
-        const userDoc = {
-            _id: uuidv4(),
-            rol,
-            tipo_rol, // <-- Se guarda tipo_rol
-            nombre,
-            contacto,
-            contrasena: hashedPassword,
-            direccion,
-            cluni,
-            tipo: "usuario"
-        };
-        await donenme_db.insert(userDoc);
-        res.status(201).json({ status: "success", message: "ONG registrada" });
-    } catch (error) {
-        res.status(500).json({ status: "error", message: error.message });
-    }
-};
-
-const registerPersonaFisica = async (req, res) => {
-    const { nombre, contacto, contrasena, direccion, curp, tipo_rol } = req.body; // <-- Se recibe tipo_rol
-    const rol = "persona_fisica";
-    try {
-        const hashedPassword = await bcrypt.hash(contrasena, 10);
-        const userDoc = {
-            _id: uuidv4(),
-            rol,
-            tipo_rol, // <-- Se guarda tipo_rol
-            nombre,
-            contacto,
-            contrasena: hashedPassword,
-            direccion,
-            curp,
-            tipo: "usuario"
-        };
-        await donenme_db.insert(userDoc);
-        res.status(201).json({ status: "success", message: "Persona registrada" });
-    } catch (error) {
-        res.status(500).json({ status: "error", message: error.message });
-    }
-};
-
-const registerGobierno = async (req, res) => {
-    const { nombre, contacto, contrasena, direccion, dependencia, tipo_rol } = req.body; // <-- Se recibe tipo_rol
-    const rol = "gobierno";
-    try {
-        const hashedPassword = await bcrypt.hash(contrasena, 10);
-        const userDoc = {
-            _id: uuidv4(),
-            rol,
-            tipo_rol, // <-- Se guarda tipo_rol
-            nombre,
-            contacto,
-            contrasena: hashedPassword,
-            direccion,
-            dependencia,
-            tipo: "usuario"
-        };
-        await donenme_db.insert(userDoc);
-        res.status(201).json({ status: "success", message: "Gobierno registrado" });
-    } catch (error) {
-        res.status(500).json({ status: "error", message: error.message });
-    }
-};
 
 
 // ===============================================
@@ -247,10 +220,7 @@ const updateUserProfile = async (req, res) => {
 // ===============================================
 
 module.exports = {
-    registerEmpresa,
-    registerONG,
-    registerPersonaFisica,
-    registerGobierno,
+    register,
     loginUser,
     getUserProfile,
     updateUserProfile // <-- Exportar la nueva función

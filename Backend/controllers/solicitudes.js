@@ -1,6 +1,5 @@
 // Backend/controllers/solicitudes.js
 
-require('dotenv').config();
 const donenme_db = require('../BD/database');
 const { v4: uuidv4 } = require('uuid');
 const { createNotification } = require('./notificaciones');
@@ -38,8 +37,20 @@ const createSolicitud = async (req, res) => {
     }
 
     try {
-        const donacion = await donenme_db.get(donacionId);
-        const receptor = await donenme_db.get(receptorId); // Get receptor's data for their name
+        // Optimización: Obtener donación y receptor en una sola llamada
+        const fetchResult = await donenme_db.fetch({ keys: [donacionId, receptorId] });
+        const donacionRow = fetchResult.rows.find(row => row.id === donacionId);
+        const receptorRow = fetchResult.rows.find(row => row.id === receptorId);
+
+        if (!donacionRow || !donacionRow.doc) {
+            return res.status(404).json({ message: "La donación especificada no existe." });
+        }
+        if (!receptorRow || !receptorRow.doc) {
+            return res.status(404).json({ message: "El usuario receptor no fue encontrado." });
+        }
+
+        const donacion = donacionRow.doc;
+        const receptor = receptorRow.doc;
 
         if (donacion.donadorId === receptorId) {
             return res.status(403).json({ message: "No puedes solicitar tu propia donación." });
@@ -71,9 +82,6 @@ const createSolicitud = async (req, res) => {
         res.status(201).json({ message: "Solicitud enviada con éxito", solicitud: nuevaSolicitud });
 
     } catch (error) {
-        if (error.statusCode === 404) {
-            return res.status(404).json({ message: "Donación o usuario no encontrado." });
-        }
         console.error("Error al crear solicitud:", error);
         res.status(500).json({ message: "Error interno del servidor" });
     }
@@ -101,14 +109,26 @@ const getSolicitudesPorDonacion = async (req, res) => {
             }
         };
         const result = await donenme_db.find(query);
+        const solicitudes = result.docs;
 
-        const solicitudesEnriquecidas = await Promise.all(result.docs.map(async (solicitud) => {
-            try {
-                const receptor = await donenme_db.get(solicitud.receptorId);
-                return { ...solicitud, receptorNombre: receptor.nombre };
-            } catch (e) {
-                return { ...solicitud, receptorNombre: 'Usuario Desconocido' };
+        if (solicitudes.length === 0) {
+            return res.status(200).json([]);
+        }
+
+        // Optimización N+1: Obtener todos los receptores en una sola consulta
+        const receptorIds = [...new Set(solicitudes.map(s => s.receptorId))];
+        const receptoresResult = await donenme_db.fetch({ keys: receptorIds });
+
+        const receptoresMap = receptoresResult.rows.reduce((map, row) => {
+            if (row.doc) {
+                map[row.doc._id] = row.doc.nombre;
             }
+            return map;
+        }, {});
+
+        const solicitudesEnriquecidas = solicitudes.map(solicitud => ({
+            ...solicitud,
+            receptorNombre: receptoresMap[solicitud.receptorId] || 'Usuario Desconocido'
         }));
 
         res.status(200).json(solicitudesEnriquecidas);
@@ -142,36 +162,28 @@ const aprobarSolicitud = async (req, res) => {
             if (!itemDonado || itemDonado.restantes < itemSolicitado.cantidad) {
                 solicitud.estado = 'rechazada';
                 solicitud.comentario = `Stock insuficiente para el producto ${itemSolicitado.tipo}.`;
-                await donenme_db.insert(solicitud);
+                await donenme_db.insert(solicitud); // Guardar el rechazo por falta de stock
                 return res.status(400).json({ message: `Stock insuficiente para el producto ${itemSolicitado.tipo}.` });
             }
         }
 
-        // Actualizar el stock de la donación de forma inmutable
-        const productosActualizados = donacion.productos.map(productoEnDonacion => {
+        // Actualizar el stock de la donación
+        donacion.productos = donacion.productos.map(productoEnDonacion => {
             const productoEnSolicitud = solicitud.productos.find(p => p.id === productoEnDonacion.id);
             if (productoEnSolicitud) {
-                // Este es el producto que se está reclamando, actualizar su stock
                 return {
                     ...productoEnDonacion,
                     restantes: productoEnDonacion.restantes - productoEnSolicitud.cantidad
                 };
             }
-            // Este producto no fue solicitado, devolverlo como está
             return productoEnDonacion;
         });
 
-        // Crear el objeto de donación actualizado con la nueva lista de productos
-        const donacionActualizada = {
-            ...donacion,
-            productos: productosActualizados
-        };
-
-        // Guardar la donación actualizada en la base de datos
-        await donenme_db.insert(donacionActualizada);
-
+        // Actualizar el estado de la solicitud
         solicitud.estado = 'aceptada';
-        await donenme_db.insert(solicitud);
+
+        // Usar bulk para una operación atómica
+        await donenme_db.bulk({ docs: [donacion, solicitud] });
 
         // ** TRIGGER: Notificación para el receptor **
         await createNotification(
@@ -215,7 +227,9 @@ const rechazarSolicitud = async (req, res) => {
 
         solicitud.estado = 'rechazada';
         solicitud.comentario = comentario;
-        await donenme_db.insert(solicitud);
+        
+        // Usar bulk por consistencia, aunque sea un solo documento
+        await donenme_db.bulk({ docs: [solicitud] });
 
         // ** TRIGGER: Notificación para el receptor **
         await createNotification(

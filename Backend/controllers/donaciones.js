@@ -1,6 +1,5 @@
 // Backend/controllers/donaciones.js
 
-require('dotenv').config();
 const donenme_db = require('../BD/database');
 const { v4: uuidv4 } = require('uuid');
 
@@ -98,20 +97,34 @@ const getDonacionesDisponibles = async (req, res) => {
             }
         };
         const result = await donenme_db.find(query);
-        
-        // Opcional: Enriquecer con datos del donador
-        const donacionesPromesas = result.docs.map(async (donacion) => {
-            try {
-                const donador = await donenme_db.get(donacion.donadorId);
-                // No enviar datos sensibles
-                return { ...donacion, donador: { nombre: donador.nombre, rol: donador.rol } };
-            } catch (e) {
-                // Si el donador no se encuentra, devolver la donación sin enriquecer
-                return donacion;
-            }
-        });
+        const donaciones = result.docs;
 
-        const donacionesEnriquecidas = await Promise.all(donacionesPromesas);
+        if (donaciones.length === 0) {
+            return res.status(200).json([]);
+        }
+
+        // Optimización N+1: Recolectar todos los IDs de donadores únicos
+        const donadorIds = [...new Set(donaciones.map(d => d.donadorId))];
+
+        // Obtener todos los documentos de los donadores en una sola consulta
+        const donadoresResult = await donenme_db.fetch({ keys: donadorIds });
+
+        // Crear un mapa para búsqueda rápida de donadores
+        const donadoresMap = donadoresResult.rows.reduce((map, row) => {
+            if (row.doc) {
+                map[row.doc._id] = {
+                    nombre: row.doc.nombre,
+                    rol: row.doc.rol
+                };
+            }
+            return map;
+        }, {});
+
+        // Enriquecer las donaciones con los datos del donador desde el mapa
+        const donacionesEnriquecidas = donaciones.map(donacion => ({
+            ...donacion,
+            donador: donadoresMap[donacion.donadorId] || null // Asignar donador o null si no se encuentra
+        }));
 
         res.status(200).json(donacionesEnriquecidas);
 

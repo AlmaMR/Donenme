@@ -1,6 +1,4 @@
-// Define la URL base de tu API. 
-// ¡Asegúrate de que coincida con tu backend!
-const API_BASE_URL = 'http://localhost:3000/api'; // Asumiendo que esta es la base
+import { API_BASE_URL } from './config.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -49,6 +47,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const solicitudProductosContainer = document.getElementById('solicitud-productos-container');
     const solicitudDonacionIdInput = document.getElementById('solicitud-donacionId');
 
+    // Elementos del Modal de Rechazo
+    const rejectionModal = document.getElementById('rejection-modal');
+    const closeRejectionModalButton = document.getElementById('close-rejection-modal-button');
+    const cancelRejectionModalButton = document.getElementById('cancel-rejection-modal-button');
+    const rejectionForm = document.getElementById('rejection-form');
+    const rejectionModalMessage = document.getElementById('rejection-modal-message');
+    const rejectionSolicitudIdInput = document.getElementById('rejection-solicitud-id');
+    const rejectionCommentTextarea = document.getElementById('rejection-comment');
+
     // --- NOTIFICATION ELEMENTS ---
     const notificationButton = document.getElementById('notification-button');
     const notificationBadge = document.getElementById('notification-badge');
@@ -62,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 1. INICIALIZACIÓN Y AUTENTICACIÓN ---
 
     function initializeApp() {
-        userToken = localStorage.getItem('donenme_token');
+        userToken = sessionStorage.getItem('donenme_token');
         
         // Si no hay token, no debe estar aquí. Redirigir a login.
         if (!userToken) {
@@ -90,6 +97,11 @@ document.addEventListener('DOMContentLoaded', () => {
         closeSolicitudModalButton.addEventListener('click', () => solicitudModal.classList.add('hidden'));
         cancelSolicitudModalButton.addEventListener('click', () => solicitudModal.classList.add('hidden'));
         solicitudForm.addEventListener('submit', handleSolicitudSubmit);
+
+        // Listeners para el nuevo modal de rechazo
+        closeRejectionModalButton.addEventListener('click', () => rejectionModal.classList.add('hidden'));
+        cancelRejectionModalButton.addEventListener('click', () => rejectionModal.classList.add('hidden'));
+        rejectionForm.addEventListener('submit', handleRejectionSubmit);
 
         // --- NOTIFICATION LISTENERS ---
         notificationButton.addEventListener('click', () => {
@@ -296,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function logout() {
-        localStorage.removeItem('donenme_token');
+        sessionStorage.removeItem('donenme_token');
         window.location.href = 'Login.html'; // Corregido para apuntar a Login.html
     }
 
@@ -361,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupDonorListeners() {
         // Abrir y cerrar modal
-        openModalButton.addEventListener('click', () => modal.classList.remove('hidden'));
+        openModalButton.addEventListener('click', openAddModal); // <-- CORREGIDO
         closeModalButton.addEventListener('click', () => modal.classList.add('hidden'));
         cancelModalButton.addEventListener('click', () => modal.classList.add('hidden'));
         
@@ -372,6 +384,35 @@ document.addEventListener('DOMContentLoaded', () => {
         addDonationForm.addEventListener('submit', handleDonationSubmit);
     }
 
+    function openAddModal() {
+        addDonationForm.reset(); // Limpiar el formulario
+        document.getElementById('edit-donation-id').value = ''; // Asegurarse de que no haya ID de edición
+        modalMessage.textContent = ''; // Limpiar mensajes de error
+
+        // Cambiar título y botón a modo "Crear"
+        modal.querySelector('h3').textContent = 'Crear Nueva Donación';
+        modal.querySelector('button[type="submit"]').textContent = 'Guardar Donación';
+
+        // Restaurar el contenedor de productos a un solo campo vacío
+        productFieldsContainer.innerHTML = `
+            <div class="product-item grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border rounded-lg items-center">
+                <input type="text" class="product-tipo w-full px-3 py-2 border rounded-lg" placeholder="Tipo (Ej: Arroz, Frijol)" required>
+                <div>
+                    <label class="text-sm text-gray-600">Cant. Total</label>
+                    <input type="number" class="product-cantidad w-full px-3 py-2 border rounded-lg" placeholder="Total" min="1" required>
+                </div>
+                <div class="remaining-field hidden">
+                    <label class="text-sm text-gray-500">Restantes</label>
+                    <p class="w-full px-3 py-2 bg-gray-100 rounded-lg"></p>
+                </div>
+                <input type="date" class="product-caducidad w-full px-3 py-2 border rounded-lg" required>
+                <input type="text" class="product-descripcion w-full px-3 py-2 border rounded-lg" placeholder="Descripción (Ej: Bolsa 1kg)">
+            </div>
+        `;
+
+        modal.classList.remove('hidden'); // Mostrar el modal
+    }
+
     function addProductField() {
         // Clonar el primer item de producto para usarlo como plantilla
         const firstProductItem = productFieldsContainer.querySelector('.product-item');
@@ -380,7 +421,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Limpiar los valores del nuevo item
         newProductItem.querySelectorAll('input').forEach(input => input.value = '');
         newProductItem.removeAttribute('data-id'); // <-- ¡FIX! Eliminar el ID clonado
-
+        
+        // Ocultar el campo "restantes" en el nuevo producto
+        const remainingField = newProductItem.querySelector('.remaining-field');
+        if (remainingField) {
+            remainingField.classList.add('hidden');
+        }
+        
         // (Opcional) Agregar un botón de eliminar al nuevo item
         const removeButton = document.createElement('button');
         removeButton.type = 'button';
@@ -779,7 +826,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <label class="text-sm text-gray-600">Cant. Total</label>
                                 <input type="number" class="product-cantidad w-full px-3 py-2 border rounded-lg" placeholder="Total" min="${minPermitido}" max="${p.restantes}" value="${p.restantes}" required>
                             </div>
-                            <div>
+                            <div class="remaining-field">
                                 <label class="text-sm text-gray-500">Restantes</label>
                                 <p class="w-full px-3 py-2 bg-gray-100 rounded-lg">${p.restantes}</p>
                             </div>
@@ -800,7 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <label class="text-sm text-gray-600">Cant. Total</label>
                             <input type="number" class="product-cantidad w-full px-3 py-2 border rounded-lg" placeholder="Total" min="1" required>
                         </div>
-                        <div>
+                        <div class="remaining-field hidden">
                             <label class="text-sm text-gray-500">Restantes</label>
                             <p class="w-full px-3 py-2 bg-gray-100 rounded-lg"></p>
                         </div>
@@ -810,6 +857,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
             productFieldsContainer.innerHTML = productsHtml;
+
+            // Asegurarse de que los campos "restantes" sean visibles en modo edición
+            productFieldsContainer.querySelectorAll('.remaining-field').forEach(field => {
+                field.classList.remove('hidden');
+            });
 
             modal.classList.remove('hidden');
         } catch (error) {
@@ -891,34 +943,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    window.rechazarSolicitud = async function(solicitudId) {
-        const comentario = prompt('Por favor, introduce un comentario para el rechazo:');
-        if (comentario === null) { // El usuario canceló el prompt
+    window.rechazarSolicitud = function(solicitudId) {
+        // Limpiar el modal y establecer el ID de la solicitud
+        rejectionModalMessage.textContent = '';
+        rejectionCommentTextarea.value = '';
+        rejectionSolicitudIdInput.value = solicitudId;
+        rejectionModal.classList.remove('hidden');
+    }
+
+    async function handleRejectionSubmit(e) {
+        e.preventDefault();
+        const solicitudId = rejectionSolicitudIdInput.value;
+        const comentario = rejectionCommentTextarea.value;
+
+        if (!comentario || comentario.trim() === '') {
+            rejectionModalMessage.textContent = 'El motivo del rechazo es obligatorio.';
             return;
         }
-    
+
+        rejectionModalMessage.textContent = 'Procesando...';
+
         try {
             const response = await fetchWithAuth(`/solicitudes/${solicitudId}/rechazar`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ comentario }),
             });
-    
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'No se pudo rechazar la solicitud.');
             }
-    
+
             alert('¡Solicitud rechazada con éxito!');
-    
+            rejectionModal.classList.add('hidden');
+
             // Esperar un momento para que la base de datos se actualice
             setTimeout(() => {
                 loadAndRenderDonations('donador');
-            }, 500); // 500ms de retraso
-    
+            }, 500);
+
         } catch (error) {
             console.error('Error al rechazar solicitud:', error);
-            alert('Error: ' + error.message);
+            rejectionModalMessage.textContent = error.message;
         }
     }
 
