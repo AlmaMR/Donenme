@@ -5,20 +5,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Vistas
     const loginView = document.getElementById('login-view');
     const registerView = document.getElementById('register-view');
-    
+
     // Links de navegación
     const showRegisterLink = document.getElementById('show-register-link');
     const showLoginLink = document.getElementById('show-login-link');
-    
+
     // Formulario de Login
     const loginForm = document.getElementById('login-form');
     const loginMessage = document.getElementById('login-message');
-    
+
     // Formulario de Registro
     const registerForm = document.getElementById('register-form');
     const registerMessage = document.getElementById('register-message');
     const userTypeSelect = document.getElementById('user-type');
-    
+
     // Contenedores de campos dinámicos
     const commonFields = document.getElementById('form-fields-common');
     const empresaFields = document.getElementById('form-fields-empresa');
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         document.getElementById(viewId).classList.add('active');
     }
-    
+
     // Función para mostrar mensajes
     function showLoginMessage(message, isError = false) {
         loginMessage.textContent = message;
@@ -71,16 +71,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Lógica de Formulario de Registro Dinámico (ACTUALIZADA) ---
     userTypeSelect.addEventListener('change', () => {
         const type = userTypeSelect.value;
-        
+
         // 1. Ocultar todos los contenedores y quitar 'required'
         const allFieldContainers = [commonFields, empresaFields, gobiernoFields, organizacionFields, personaFields, passwordFields];
-        
+
         allFieldContainers.forEach(container => {
             container.classList.add('hidden');
             setFieldsRequired(container, false); // <--- Lógica actualizada
         });
         registerSubmitBtn.classList.add('hidden');
-        
+
         // Limpiar inputs
         document.querySelectorAll('#form-fields-container input').forEach(input => input.value = '');
         userTypeSelect.value = type;
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         passwordFields.classList.remove('hidden');
         setFieldsRequired(passwordFields, true); // <--- Lógica actualizada
         registerSubmitBtn.classList.remove('hidden');
-        
+
         // 3. Mostrar campos específicos y hacerlos 'required'
         switch (type) {
             case 'empresa':
@@ -118,8 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Envío de Registro
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        registerMessage.textContent = ''; 
-        
+        registerMessage.textContent = '';
+
         const password = document.getElementById('reg-password').value;
         const confirmPassword = document.getElementById('reg-password-confirm').value;
 
@@ -153,12 +153,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     payload.nombre = document.getElementById('gob-nombre').value;
                     payload.dependencia = document.getElementById('gob-dependencia').value;
                     break;
-                case 'organizacion': 
+                case 'organizacion':
                     endpoint = `${API_URL}/register/ong`;
                     payload.nombre = document.getElementById('org-nombre').value;
                     payload.cluni = document.getElementById('org-cluni').value;
                     break;
-                case 'persona': 
+                case 'persona':
                     endpoint = `${API_URL}/register/persona_fisica`;
                     payload.nombre = document.getElementById('persona-nombre').value;
                     payload.curp = document.getElementById('persona-curp').value;
@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error al construir el payload:', error);
             showRegisterMessage('Error interno del formulario. Revisa la consola.', true);
-            return; 
+            return;
         }
 
         console.log('Datos a enviar:', endpoint, payload);
@@ -181,16 +181,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-
             if (!response.ok) {
-                 throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+                throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
 
             if (data.status === "success") {
-                showRegisterMessage('¡Cuenta creada exitosamente! Redirigiendo a login...');
-                
+
+                const contacto = document.getElementById('reg-telefono').value;
+                const contrasena = document.getElementById('reg-password').value;
+
+                try {
+                    const response = await fetch(`${API_URL}/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contacto, contrasena })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.status === "success") {
+                        localStorage.setItem('donenme_token', data.token);
+                        window.location.href = 'dashboard.html'; // Descomentar para redirigir
+                        //window.location.href = 'dash.html'; // Descomentar para redirigir
+                    } else {
+                        showLoginMessage(data.message, true);
+                    }
+                } catch (error) {
+                    console.error('Error de red en Login:', error);
+                    showLoginMessage('Error de conexión con el servidor.', true);
+                }
                 setTimeout(() => {
                     showView('login-view');
                     showLoginMessage('¡Cuenta creada! Por favor, inicia sesión.');
@@ -207,14 +228,14 @@ document.addEventListener('DOMContentLoaded', () => {
             showRegisterMessage('Error de conexión con el servidor.', true);
         }
     });
-    
+
     // --- Lógica de Envío de Formularios (CONECTADA AL BACKEND) ---
     // (Esta parte se queda igual, ya era correcta)
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginMessage.textContent = 'Verificando...';
         loginMessage.className = 'text-center text-blue-500 mb-4';
-        
+
         const contacto = document.getElementById('login-telefono').value;
         const contrasena = document.getElementById('login-password').value;
 
@@ -231,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showLoginMessage('¡Inicio de sesión exitoso! Redirigiendo...');
                 localStorage.setItem('donenme_token', data.token);
                 window.location.href = 'dashboard.html'; // Descomentar para redirigir
-                 //window.location.href = 'dash.html'; // Descomentar para redirigir
+                //window.location.href = 'dash.html'; // Descomentar para redirigir
             } else {
                 showLoginMessage(data.message, true);
             }

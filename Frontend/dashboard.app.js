@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'border rounded-lg p-4 shadow-sm bg-gray-50';
             
             const productosHtml = donacion.productos.map(p => `
-                <li class="text-sm py-1">- ${p.cantidad} x ${p.tipo} (${p.descripcion || 'N/D'})</li>
+                <li class="text-sm py-1"> ${p.restantes} x ${p.tipo} (${p.descripcion || 'N/D'})</li>
             `).join('');
 
             let solicitudesHtml = '<p class="text-sm text-gray-500">No hay solicitudes pendientes.</p>';
@@ -475,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.className = 'border rounded-lg p-4 shadow-sm bg-gray-50';
     
                 const productosHtml = donacion.productos.map(p => `
-                    <li class="text-sm py-1">- ${p.restantes} x ${p.tipo} (${p.descripcion || 'N/D'})</li>
+                    <li class="text-sm py-1"> ${p.restantes} x ${p.tipo} (${p.descripcion || 'N/D'})</li>
                 `).join('');
     
                 const solicitudExistente = misSolicitudes.find(s => s.donacionId === donacion._id);

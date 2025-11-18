@@ -38,7 +38,7 @@ const initializeDatabase = async () => {
 
     } catch (err) {
         if (err.statusCode === 404) {
-             console.error(`Error: La base de datos '${process.env.DB_NAME}' no existe. Revisa tu .env`);
+            console.error(`Error: La base de datos '${process.env.DB_NAME}' no existe. Revisa tu .env`);
         } else {
             // Otro error de conexión o al crear índices
             console.error('Error al inicializar la base de datos:', err.message);
