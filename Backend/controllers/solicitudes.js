@@ -3,6 +3,7 @@
 require('dotenv').config();
 const donenme_db = require('../BD/database');
 const { v4: uuidv4 } = require('uuid');
+const { createNotification } = require('./notificaciones');
 
 // ===============================================
 // GET SOLICITUDES BY THE CURRENT USER
@@ -38,6 +39,7 @@ const createSolicitud = async (req, res) => {
 
     try {
         const donacion = await donenme_db.get(donacionId);
+        const receptor = await donenme_db.get(receptorId); // Get receptor's data for their name
 
         if (donacion.donadorId === receptorId) {
             return res.status(403).json({ message: "No puedes solicitar tu propia donación." });
@@ -56,11 +58,21 @@ const createSolicitud = async (req, res) => {
         };
 
         await donenme_db.insert(nuevaSolicitud);
+
+        // ** TRIGGER: Notificación para el donador **
+        await createNotification(
+            donacion.donadorId,
+            'Nueva Solicitud Recibida',
+            `Has recibido una nueva solicitud de ${receptor.nombre}.`,
+            nuevaSolicitud._id,
+            'SOLICITUD'
+        );
+
         res.status(201).json({ message: "Solicitud enviada con éxito", solicitud: nuevaSolicitud });
 
     } catch (error) {
         if (error.statusCode === 404) {
-            return res.status(404).json({ message: "Donación no encontrada." });
+            return res.status(404).json({ message: "Donación o usuario no encontrado." });
         }
         console.error("Error al crear solicitud:", error);
         res.status(500).json({ message: "Error interno del servidor" });
@@ -135,15 +147,40 @@ const aprobarSolicitud = async (req, res) => {
             }
         }
 
-        for (const itemSolicitado of solicitud.productos) {
-            const itemDonado = donacion.productos.find(p => p.id === itemSolicitado.id);
-            itemDonado.restantes -= itemSolicitado.cantidad;
-        }
+        // Actualizar el stock de la donación de forma inmutable
+        const productosActualizados = donacion.productos.map(productoEnDonacion => {
+            const productoEnSolicitud = solicitud.productos.find(p => p.id === productoEnDonacion.id);
+            if (productoEnSolicitud) {
+                // Este es el producto que se está reclamando, actualizar su stock
+                return {
+                    ...productoEnDonacion,
+                    restantes: productoEnDonacion.restantes - productoEnSolicitud.cantidad
+                };
+            }
+            // Este producto no fue solicitado, devolverlo como está
+            return productoEnDonacion;
+        });
 
-        await donenme_db.insert(donacion);
+        // Crear el objeto de donación actualizado con la nueva lista de productos
+        const donacionActualizada = {
+            ...donacion,
+            productos: productosActualizados
+        };
+
+        // Guardar la donación actualizada en la base de datos
+        await donenme_db.insert(donacionActualizada);
 
         solicitud.estado = 'aceptada';
         await donenme_db.insert(solicitud);
+
+        // ** TRIGGER: Notificación para el receptor **
+        await createNotification(
+            solicitud.receptorId,
+            'Solicitud Aprobada',
+            'Tu solicitud ha sido aprobada. Revisa los detalles del encuentro.',
+            solicitud._id,
+            'SOLICITUD'
+        );
 
         res.status(200).json({ message: "Solicitud aprobada con éxito." });
 
@@ -179,6 +216,15 @@ const rechazarSolicitud = async (req, res) => {
         solicitud.estado = 'rechazada';
         solicitud.comentario = comentario;
         await donenme_db.insert(solicitud);
+
+        // ** TRIGGER: Notificación para el receptor **
+        await createNotification(
+            solicitud.receptorId,
+            'Solicitud Rechazada',
+            `Tu solicitud ha sido rechazada. Motivo: ${comentario}`,
+            solicitud._id,
+            'SOLICITUD'
+        );
 
         res.status(200).json({ message: "Solicitud rechazada con éxito." });
 

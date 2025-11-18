@@ -21,21 +21,40 @@
     <header class="bg-white/90 backdrop-blur-sm p-4 rounded-lg shadow-md flex justify-between items-center mb-6">
         <img src="https://raw.githubusercontent.com/AlmaMR/Donenme/refs/heads/main/Frontend/img/menosPesadas/Logo09.png" alt="DÓNENME Logo" class="block h-12 w-auto">
         
-        <!-- Contenedor del menú de usuario -->
-        <div class="relative">
-            <!-- Botón para abrir el menú -->
-            <button id="user-menu-button" class="flex items-center space-x-2 focus:outline-none">
-                <div class="text-right">
-                    <h2 id="user-name" class="font-semibold text-gray-800">Cargando...</h2>
-                    <p class="text-sm text-gray-600">Rol: <span id="user-role">...</span></p>
+        <div class="flex items-center space-x-4">
+            <!-- Contenedor de Notificaciones -->
+            <div class="relative">
+                <button id="notification-button" class="relative text-gray-600 hover:text-gray-800 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a1 1 0 00-2 0v.083A6 6 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                </button>
+                <!-- Panel de Notificaciones -->
+                <div id="notification-panel" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-20">
+                    <div class="p-4 border-b">
+                        <h4 class="text-lg font-semibold text-gray-800">Notificaciones</h4>
+                    </div>
+                    <div id="notification-list" class="max-h-96 overflow-y-auto">
+                        <!-- Las notificaciones se cargarán aquí -->
+                    </div>
                 </div>
-                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-            </button>
+            </div>
 
-            <!-- Menú desplegable -->
-            <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 ring-1 ring-black ring-opacity-5">
-                <a href="#" id="edit-profile-button" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modificar Perfil</a>
-                <a href="#" id="logout-button" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Cerrar Sesión</a>
+            <!-- Contenedor del menú de usuario -->
+            <div class="relative">
+                <!-- Botón para abrir el menú -->
+                <button id="user-menu-button" class="flex items-center space-x-2 focus:outline-none">
+                    <div class="text-right">
+                        <h2 id="user-name" class="font-semibold text-gray-800">Cargando...</h2>
+                        <p class="text-sm text-gray-600">Rol: <span id="user-role">...</span></p>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+
+                <!-- Menú desplegable -->
+                <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 ring-1 ring-black ring-opacity-5">
+                    <a href="#" id="edit-profile-button" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modificar Perfil</a>
+                    <a href="#" id="logout-button" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Cerrar Sesión</a>
+                </div>
             </div>
         </div>
     </header>
@@ -93,9 +112,16 @@
                     <h4 class="text-lg font-semibold text-gray-700 mb-2">Productos</h4>
                     <div id="product-fields-container" class="space-y-3 mb-4">
                         <!-- El primer producto (plantilla) -->
-                        <div class="product-item grid grid-cols-1 md:grid-cols-4 gap-3 p-3 border rounded-lg">
+                        <div class="product-item grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border rounded-lg items-center">
                             <input type="text" class="product-tipo w-full px-3 py-2 border rounded-lg" placeholder="Tipo (Ej: Arroz, Frijol)" required>
-                            <input type="number" class="product-cantidad w-full px-3 py-2 border rounded-lg" placeholder="Cantidad (Ej: 5)" min="1" required>
+                            <div>
+                                <label class="text-sm text-gray-600">Cant. Total</label>
+                                <input type="number" class="product-cantidad w-full px-3 py-2 border rounded-lg" placeholder="Total" min="1" required>
+                            </div>
+                            <div>
+                                <label class="text-sm text-gray-500">Restantes</label>
+                                <p class="w-full px-3 py-2 bg-gray-100 rounded-lg"></p>
+                            </div>
                             <input type="date" class="product-caducidad w-full px-3 py-2 border rounded-lg" required>
                             <input type="text" class="product-descripcion w-full px-3 py-2 border rounded-lg" placeholder="Descripción (Ej: Bolsa 1kg)">
                         </div>
@@ -156,6 +182,58 @@
                     <div id="edit-modal-message" class="text-red-500 text-sm mr-auto"></div>
                     <button type="button" id="cancel-edit-modal-button" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300">Cancelar</button>
                     <button type="submit" class="bg-[#4077B7] text-white py-2 px-4 rounded-lg font-semibold hover:bg-[#244673]">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- ===== MODAL PARA SOLICITAR DONACIÓN (Solo Receptor) ===== -->
+    <div id="solicitud-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <form id="solicitud-form">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800">Solicitar Donación</h3>
+                        <button type="button" id="close-solicitud-modal-button" class.bind="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                    </div>
+
+                    <input type="hidden" id="solicitud-donacionId" name="donacionId">
+                    
+                    <div class="mb-4">
+                        <label for="productos" class="block text-sm font-medium text-gray-700 mb-1">Productos a solicitar</label>
+                        <div id="solicitud-productos-container" class="space-y-2">
+                            <!-- Los productos de la donación se cargarán aquí -->
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="solicitud-fecha_encuentro" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Encuentro</label>
+                            <input type="date" id="solicitud-fecha_encuentro" name="fecha_encuentro" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500" required>
+                        </div>
+                        <div>
+                            <label for="solicitud-hora_encuentro" class="block text-sm font-medium text-gray-700 mb-1">Hora de Encuentro</label>
+                            <input type="time" id="solicitud-hora_encuentro" name="hora_encuentro" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="solicitud-contacto" class="block text-sm font-medium text-gray-700 mb-1">Información de Contacto</label>
+                        <input type="text" id="solicitud-contacto" name="contacto" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500" placeholder="Tu número de teléfono o email" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="solicitud-comentario" class="block text-sm font-medium text-gray-700 mb-1">Comentario (Opcional)</label>
+                        <textarea id="solicitud-comentario" name="comentario" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500" placeholder="Alguna nota adicional para el donador"></textarea>
+                    </div>
+                </div>
+                
+                <!-- Footer del Modal -->
+                <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                    <div id="solicitud-modal-message" class="text-red-500 text-sm mr-auto"></div>
+                    <button type="button" id="cancel-solicitud-modal-button" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="bg-[#4077B7] text-white py-2 px-4 rounded-lg font-semibold hover:bg-[#244673]">Enviar Solicitud</button>
                 </div>
             </form>
         </div>

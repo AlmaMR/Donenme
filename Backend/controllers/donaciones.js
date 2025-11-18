@@ -156,28 +156,56 @@ const updateDonacion = async (req, res) => {
     try {
         const donacion = await donenme_db.get(donacionId);
 
-        // Lógica de Autorización: Verificar que el usuario sea el donador
         if (donacion.donadorId !== userId) {
             return res.status(403).json({ message: "Acción no permitida. No eres el propietario de esta donación." });
         }
 
-        // TODO: Implementar la lógica de no permitir la modificación si hay solicitudes aceptadas.
-        // Por ahora, se mantiene la lógica anterior.
-        const solicitudesQuery = {
-            selector: {
-                donacionId: donacionId,
-                estado: 'aceptada'
-            }
-        };
-        const solicitudes = await donenme_db.find(solicitudesQuery);
-        if (solicitudes.docs.length > 0) {
-            return res.status(400).json({ message: "No se puede modificar una donación que ya tiene solicitudes aceptadas." });
+        // Validar si la donación ya fue completamente entregada
+        const totalRestante = donacion.productos.reduce((total, producto) => total + producto.restantes, 0);
+        if (totalRestante === 0) {
+            return res.status(400).json({ message: "No se puede modificar una donación que ya ha sido entregada en su totalidad." });
         }
 
+        const productosActualizados = [];
+        if (productos && Array.isArray(productos)) {
+            for (const p of productos) {
+                if (p.id) { // Producto existente
+                    const originalProduct = donacion.productos.find(op => op.id === p.id);
+                    const claimed = originalProduct ? originalProduct.cantidad - originalProduct.restantes : 0;
+                    
+                    // The incoming p.cantidad is the new desired *remaining* quantity
+                    const newRestantes = parseInt(p.cantidad);
 
-        // Actualizar los campos permitidos
-        if (productos) donacion.productos = productos;
-        if (punto_reunion) donacion.punto_reunion = punto_reunion;
+                    if (newRestantes < 0) {
+                        return res.status(400).json({ message: `La cantidad restante para '${p.tipo}' no puede ser negativa.` });
+                    }
+                    
+                    // The new total is the amount already claimed plus the new remaining amount
+                    const newCantidad = claimed + newRestantes;
+
+                    productosActualizados.push({
+                        ...p,
+                        cantidad: newCantidad,
+                        restantes: newRestantes,
+                    });
+                } else { // Producto nuevo
+                    productosActualizados.push({
+                        id: uuidv4(),
+                        tipo: p.tipo,
+                        cantidad: parseInt(p.cantidad),
+                        restantes: parseInt(p.cantidad),
+                        fecha_caducidad: p.fecha_caducidad,
+                        descripcion: p.descripcion,
+                        entregado: false,
+                    });
+                }
+            }
+            donacion.productos = productosActualizados;
+        }
+        
+        if (punto_reunion) {
+            donacion.punto_reunion = punto_reunion;
+        }
 
         await donenme_db.insert(donacion);
 

@@ -40,6 +40,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const editProfileForm = document.getElementById('edit-profile-form');
     const editModalMessage = document.getElementById('edit-modal-message');
 
+    // Elementos del Modal de Solicitud (Receptor)
+    const solicitudModal = document.getElementById('solicitud-modal');
+    const closeSolicitudModalButton = document.getElementById('close-solicitud-modal-button');
+    const cancelSolicitudModalButton = document.getElementById('cancel-solicitud-modal-button');
+    const solicitudForm = document.getElementById('solicitud-form');
+    const solicitudModalMessage = document.getElementById('solicitud-modal-message');
+    const solicitudProductosContainer = document.getElementById('solicitud-productos-container');
+    const solicitudDonacionIdInput = document.getElementById('solicitud-donacionId');
+
+    // --- NOTIFICATION ELEMENTS ---
+    const notificationButton = document.getElementById('notification-button');
+    const notificationBadge = document.getElementById('notification-badge');
+    const notificationPanel = document.getElementById('notification-panel');
+    const notificationList = document.getElementById('notification-list');
+
+
     let userToken = null; // Almacenará el token del usuario
     let currentUserData = null; // Almacenará los datos del usuario actual
 
@@ -70,10 +86,26 @@ document.addEventListener('DOMContentLoaded', () => {
         cancelEditModalButton.addEventListener('click', () => editProfileModal.classList.add('hidden'));
         editProfileForm.addEventListener('submit', handleProfileUpdate);
 
+        // Listeners para el modal de solicitud
+        closeSolicitudModalButton.addEventListener('click', () => solicitudModal.classList.add('hidden'));
+        cancelSolicitudModalButton.addEventListener('click', () => solicitudModal.classList.add('hidden'));
+        solicitudForm.addEventListener('submit', handleSolicitudSubmit);
+
+        // --- NOTIFICATION LISTENERS ---
+        notificationButton.addEventListener('click', () => {
+            notificationPanel.classList.toggle('hidden');
+            if (!notificationPanel.classList.contains('hidden')) {
+                fetchNotifications();
+            }
+        });
+
         // Cerrar el menú si se hace clic fuera de él
         window.addEventListener('click', (e) => {
             if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
                 userMenu.classList.add('hidden');
+            }
+            if (!notificationButton.contains(e.target) && !notificationPanel.contains(e.target)) {
+                notificationPanel.classList.add('hidden');
             }
         });
 
@@ -82,6 +114,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Buscar los datos del usuario
         fetchUserProfile();
+
+        // --- NOTIFICATION POLLING ---
+        fetchUnreadCount();
+        setInterval(fetchUnreadCount, 30000); // Actualiza cada 30 segundos
     }
 
     async function fetchUserProfile() {
@@ -199,6 +235,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- NOTIFICATION FUNCTIONS ---
+
+    async function fetchUnreadCount() {
+        try {
+            const response = await fetchWithAuth('/notificaciones/no-leidas');
+            if (!response.ok) return;
+            const data = await response.json();
+            if (data.count > 0) {
+                notificationBadge.textContent = data.count;
+                notificationBadge.classList.remove('hidden');
+            } else {
+                notificationBadge.classList.add('hidden');
+            }
+        } catch (error) {
+            console.error('Error fetching unread count:', error);
+        }
+    }
+
+    async function fetchNotifications() {
+        notificationList.innerHTML = '<p class="p-4 text-gray-600">Cargando...</p>';
+        try {
+            const response = await fetchWithAuth('/notificaciones');
+            if (!response.ok) throw new Error('No se pudieron cargar las notificaciones.');
+            const notifications = await response.json();
+            renderNotifications(notifications);
+        } catch (error) {
+            notificationList.innerHTML = `<p class="p-4 text-red-500">${error.message}</p>`;
+        }
+    }
+
+    function renderNotifications(notifications) {
+        notificationList.innerHTML = '';
+        if (notifications.length === 0) {
+            notificationList.innerHTML = '<p class="p-4 text-gray-600">No tienes notificaciones.</p>';
+            return;
+        }
+        notifications.forEach(notif => {
+            const div = document.createElement('div');
+            div.className = `p-4 border-b cursor-pointer hover:bg-gray-100 ${notif.leida ? 'bg-gray-50 text-gray-500' : 'bg-white'}`;
+            div.innerHTML = `
+                <p class="font-semibold">${notif.titulo}</p>
+                <p class="text-sm">${notif.mensaje}</p>
+                <p class="text-xs text-gray-400 mt-1">${new Date(notif.fecha_creacion).toLocaleString()}</p>
+            `;
+            div.addEventListener('click', () => markNotificationAsRead(notif._id, div));
+            notificationList.appendChild(div);
+        });
+    }
+
+    async function markNotificationAsRead(notificationId, element) {
+        try {
+            await fetchWithAuth(`/notificaciones/${notificationId}/leer`, { method: 'PUT' });
+            element.classList.remove('bg-white');
+            element.classList.add('bg-gray-50', 'text-gray-500');
+            fetchUnreadCount(); // Actualizar el contador
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
+    }
+
     function logout() {
         localStorage.removeItem('donenme_token');
         window.location.href = 'Login.html'; // Corregido para apuntar a Login.html
@@ -283,12 +379,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Limpiar los valores del nuevo item
         newProductItem.querySelectorAll('input').forEach(input => input.value = '');
+        newProductItem.removeAttribute('data-id'); // <-- ¡FIX! Eliminar el ID clonado
 
         // (Opcional) Agregar un botón de eliminar al nuevo item
         const removeButton = document.createElement('button');
         removeButton.type = 'button';
         removeButton.textContent = 'Eliminar';
-        removeButton.className = 'text-red-500 text-sm md:col-span-4 text-right';
+        removeButton.className = 'text-red-500 text-sm md:col-span-5 text-right';
         removeButton.onclick = () => newProductItem.remove();
         newProductItem.appendChild(removeButton);
 
@@ -310,18 +407,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const cantidad = item.querySelector('.product-cantidad').value;
             const fecha_caducidad = item.querySelector('.product-caducidad').value;
             const descripcion = item.querySelector('.product-descripcion').value;
+            const id = item.dataset.id; // <-- Leer el ID del producto
 
             if (!tipo || !cantidad || !fecha_caducidad) {
                 formIsValid = false;
             }
 
-            productos.push({
+            const producto = {
                 tipo,
                 cantidad: parseInt(cantidad, 10),
                 fecha_caducidad,
                 descripcion,
-                entregado: false // Por defecto al crear
-            });
+            };
+
+            if (id) {
+                producto.id = id; // <-- Incluir el ID si existe
+            }
+
+            productos.push(producto);
         });
 
         if (!formIsValid || !punto_reunion) {
@@ -358,9 +461,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Restaurar los campos de producto a su estado inicial
             productFieldsContainer.innerHTML = `
-                <div class="product-item grid grid-cols-1 md:grid-cols-4 gap-3 p-3 border rounded-lg">
+                <div class="product-item grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border rounded-lg items-center">
                     <input type="text" class="product-tipo w-full px-3 py-2 border rounded-lg" placeholder="Tipo (Ej: Arroz, Frijol)" required>
-                    <input type="number" class="product-cantidad w-full px-3 py-2 border rounded-lg" placeholder="Cantidad (Ej: 5)" min="1" required>
+                    <div>
+                        <label class="text-sm text-gray-600">Cant. Total</label>
+                        <input type="number" class="product-cantidad w-full px-3 py-2 border rounded-lg" placeholder="Total" min="1" required>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-500">Restantes</label>
+                        <p class="w-full px-3 py-2 bg-gray-100 rounded-lg"></p>
+                    </div>
                     <input type="date" class="product-caducidad w-full px-3 py-2 border rounded-lg" required>
                     <input type="text" class="product-descripcion w-full px-3 py-2 border rounded-lg" placeholder="Descripción (Ej: Bolsa 1kg)">
                 </div>
@@ -401,7 +511,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="border-t mt-2 pt-2">
                                 <p class="text-sm font-semibold">Solicitud de: ${s.receptorNombre}</p>
                                 <ul class="list-disc list-inside pl-4">
-                                    ${s.productos.map(p => `<li>${p.cantidad} x ${p.tipo}</li>`).join('')}
+                                    ${s.productos.map(p => {
+                                        const productoOriginal = donacion.productos.find(dp => dp.id === p.id);
+                                        const descripcion = productoOriginal ? `(${productoOriginal.descripcion || 'N/D'})` : '';
+                                        return `<li>${p.cantidad} x ${productoOriginal.tipo} ${descripcion}</li>`;
+                                    }).join('')}
                                 </ul>
                                 <div class="text-right mt-2">
                                     <button class="text-sm font-medium text-green-600 hover:text-green-800 mr-2" onclick="aprobarSolicitud('${s._id}')">Aprobar</button>
@@ -488,9 +602,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } else {
                     buttonHtml = `
-                        <a href="solicitud.html?donacionId=${donacion._id}" class="reclamar-btn bg-emerald-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-emerald-700 transition duration-300">
+                        <button onclick="openSolicitudModal('${donacion._id}')" class="reclamar-btn bg-emerald-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-emerald-700 transition duration-300">
                             Reclamar Donación
-                        </a>
+                        </button>
                     `;
                 }            
                 card.innerHTML = `
@@ -513,42 +627,195 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- 5. LÓGICA DEL MODAL DE SOLICITUD (RECEPTOR) ---
+
+    window.openSolicitudModal = async function(donacionId) {
+        solicitudModal.classList.remove('hidden');
+        solicitudDonacionIdInput.value = donacionId;
+        solicitudProductosContainer.innerHTML = '<p class="text-gray-600">Cargando productos...</p>';
+
+        try {
+            const response = await fetchWithAuth(`/donaciones/${donacionId}`);
+            if (!response.ok) {
+                throw new Error('No se pudieron cargar los detalles de la donación.');
+            }
+            const donacion = await response.json();
+            renderSolicitudProductos(donacion.productos);
+        } catch (error) {
+            solicitudProductosContainer.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+        }
+    }
+
+    function renderSolicitudProductos(productos) {
+        solicitudProductosContainer.innerHTML = '';
+        productos.forEach(producto => {
+            if (producto.restantes > 0) {
+                const productoDiv = document.createElement('div');
+                productoDiv.className = 'flex items-center justify-between p-2 border rounded-lg';
+                productoDiv.innerHTML = `
+                    <div>
+                        <p class="font-semibold">${producto.tipo}</p>
+                        <p class="text-sm text-gray-600">Disponibles: ${producto.restantes}</p>
+                    </div>
+                    <input type="number" name="producto_${producto.id}" class="w-24 px-2 py-1 border rounded-lg" min="1" max="${producto.restantes}" placeholder="0">
+                `;
+                solicitudProductosContainer.appendChild(productoDiv);
+            }
+        });
+    }
+
+    async function handleSolicitudSubmit(e) {
+        e.preventDefault();
+        solicitudModalMessage.textContent = '';
+
+        const formData = new FormData(solicitudForm);
+        const donacionId = formData.get('donacionId');
+        const fecha_encuentro = formData.get('fecha_encuentro');
+        const hora_encuentro = formData.get('hora_encuentro');
+        const contacto = formData.get('contacto');
+        const comentario = formData.get('comentario');
+
+        const productos = [];
+        for (const [key, value] of formData.entries()) {
+            if (key.startsWith('producto_') && value > 0) {
+                productos.push({
+                    id: key.replace('producto_', ''),
+                    cantidad: parseInt(value, 10),
+                });
+            }
+        }
+
+        if (productos.length === 0) {
+            solicitudModalMessage.textContent = 'Debes solicitar al menos un producto.';
+            return;
+        }
+
+        const solicitudData = {
+            donacionId,
+            productos,
+            fecha_encuentro,
+            hora_encuentro,
+            contacto,
+            comentario,
+        };
+
+        try {
+            const response = await fetchWithAuth('/solicitudes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(solicitudData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al enviar la solicitud.');
+            }
+
+            solicitudModalMessage.textContent = '¡Solicitud enviada con éxito!';
+            solicitudModalMessage.classList.remove('text-red-500');
+            solicitudModalMessage.classList.add('text-green-500');
+
+
+            setTimeout(() => {
+                solicitudModal.classList.add('hidden');
+                solicitudForm.reset();
+                loadAndRenderDonations('receptor');
+            }, 2000);
+
+        } catch (error) {
+            solicitudModalMessage.textContent = error.message;
+        }
+    }
+
     // --- FUNCIONES DE MODIFICACIÓN Y ELIMINACIÓN DE DONACIONES ---
 
     window.editDonation = async function(donacionId) {
-        // Buscar la donación en la lista ya cargada para no hacer otro fetch
-        const response = await fetchWithAuth(`/donaciones/${donacionId}`);
-        if(!response.ok){
-            alert("Error al cargar los datos de la donación para editar.");
-            return;
+        try {
+            const response = await fetchWithAuth(`/donaciones/${donacionId}`);
+            if (!response.ok) {
+                alert("Error al cargar los datos de la donación para editar.");
+                return;
+            }
+            const donacion = await response.json();
+
+            if (!donacion) {
+                alert("Error: No se encontraron los datos de la donación.");
+                return;
+            }
+
+            const totalRestante = donacion.productos.reduce((total, p) => total + (p.restantes || 0), 0);
+
+            if (totalRestante === 0) {
+                alert('Esta donación ya no tiene stock disponible y no puede ser modificada.');
+                return;
+            }
+
+            // Cambiar título y botón del modal
+            modal.querySelector('h3').textContent = 'Modificar Donación';
+            modal.querySelector('button[type="submit"]').textContent = 'Guardar Cambios';
+
+            // Rellenar los campos
+            document.getElementById('edit-donation-id').value = donacion._id;
+            document.getElementById('punto_reunion').value = donacion.punto_reunion;
+
+            // Limpiar y rellenar productos
+            let productsHtml = '';
+            if (donacion.productos && donacion.productos.length > 0) {
+                donacion.productos.forEach(p => {
+                    // Asegurarse de que la fecha de caducidad existe antes de hacer split
+                    const fechaCaducidad = p.fecha_caducidad ? p.fecha_caducidad.split('T')[0] : '';
+                    
+                    // --- INICIO DE LA LÓGICA DE MODIFICACIÓN (CORREGIDA) ---
+                    const cantidadReclamada = p.cantidad - p.restantes;
+                    // El nuevo total no puede ser menor a lo ya reclamado.
+                    const minPermitido = cantidadReclamada;
+                    // El nuevo total no puede ser mayor al total original (regla: no aumentar).
+                    const maxPermitido = p.cantidad;
+
+                    productsHtml += `
+                        <div class="product-item grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border rounded-lg items-center" data-id="${p.id}">
+                            <input type="text" class="product-tipo w-full px-3 py-2 border rounded-lg" placeholder="Tipo (Ej: Arroz, Frijol)" value="${p.tipo || ''}" required>
+                            <div>
+                                <label class="text-sm text-gray-600">Cant. Total</label>
+                                <input type="number" class="product-cantidad w-full px-3 py-2 border rounded-lg" placeholder="Total" min="${minPermitido}" max="${p.restantes}" value="${p.restantes}" required>
+                            </div>
+                            <div>
+                                <label class="text-sm text-gray-500">Restantes</label>
+                                <p class="w-full px-3 py-2 bg-gray-100 rounded-lg">${p.restantes}</p>
+                            </div>
+                            <input type="date" class="product-caducidad w-full px-3 py-2 border rounded-lg" value="${fechaCaducidad}" required>
+                            <input type="text" class="product-descripcion w-full px-3 py-2 border rounded-lg" placeholder="Descripción (Ej: Bolsa 1kg)" value="${p.descripcion || ''}">
+                            <button type="button" class="text-red-500 text-sm md:col-span-5 text-right" onclick="this.parentElement.remove()">Eliminar</button>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Si después del bucle no hay HTML (porque no había productos), agregar un campo vacío
+            if (productsHtml === '') {
+                productsHtml = `
+                    <div class="product-item grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border rounded-lg items-center">
+                        <input type="text" class="product-tipo w-full px-3 py-2 border rounded-lg" placeholder="Tipo (Ej: Arroz, Frijol)" required>
+                        <div>
+                            <label class="text-sm text-gray-600">Cant. Total</label>
+                            <input type="number" class="product-cantidad w-full px-3 py-2 border rounded-lg" placeholder="Total" min="1" required>
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-500">Restantes</label>
+                            <p class="w-full px-3 py-2 bg-gray-100 rounded-lg"></p>
+                        </div>
+                        <input type="date" class="product-caducidad w-full px-3 py-2 border rounded-lg" required>
+                        <input type="text" class="product-descripcion w-full px-3 py-2 border rounded-lg" placeholder="Descripción (Ej: Bolsa 1kg)">
+                    </div>
+                `;
+            }
+            productFieldsContainer.innerHTML = productsHtml;
+
+            modal.classList.remove('hidden');
+        } catch (error) {
+            console.error("Error en la función editDonation:", error);
+            alert("Ocurrió un error inesperado al intentar modificar la donación. Revisa la consola para más detalles.");
         }
-        const donacion = await response.json();
-
-        if (!donacion) {
-            alert("Error: No se encontraron los datos de la donación.");
-            return;
-        }
-
-        // Cambiar título y botón del modal
-        modal.querySelector('h3').textContent = 'Modificar Donación';
-        modal.querySelector('button[type="submit"]').textContent = 'Guardar Cambios';
-
-        // Rellenar los campos
-        document.getElementById('edit-donation-id').value = donacion._id;
-        document.getElementById('punto_reunion').value = donacion.punto_reunion;
-
-        // Limpiar y rellenar productos
-        productFieldsContainer.innerHTML = '';
-        donacion.productos.forEach(p => {
-            addProductField(); // Crea un nuevo campo de producto
-            const newItem = productFieldsContainer.lastElementChild;
-            newItem.querySelector('.product-tipo').value = p.tipo;
-            newItem.querySelector('.product-cantidad').value = p.cantidad;
-            newItem.querySelector('.product-caducidad').value = p.fecha_caducidad.split('T')[0]; // Formato YYYY-MM-DD
-            newItem.querySelector('.product-descripcion').value = p.descripcion;
-        });
-
-        modal.classList.remove('hidden');
     }
 
     window.deleteDonation = async function(donacionId) {
@@ -611,8 +878,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.message || 'No se pudo aprobar la solicitud.');
             }
     
-            await loadAndRenderDonations('donador');
             alert('¡Solicitud aprobada con éxito!');
+    
+            // Esperar un momento para que la base de datos se actualice antes de volver a cargar
+            setTimeout(() => {
+                loadAndRenderDonations('donador');
+            }, 500); // 500ms de retraso
     
         } catch (error) {
             console.error('Error al aprobar solicitud:', error);
@@ -638,8 +909,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.message || 'No se pudo rechazar la solicitud.');
             }
     
-            await loadAndRenderDonations('donador');
             alert('¡Solicitud rechazada con éxito!');
+    
+            // Esperar un momento para que la base de datos se actualice
+            setTimeout(() => {
+                loadAndRenderDonations('donador');
+            }, 500); // 500ms de retraso
     
         } catch (error) {
             console.error('Error al rechazar solicitud:', error);
