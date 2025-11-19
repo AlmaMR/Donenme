@@ -26,7 +26,15 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Middlewares
-app.use(cors()); // Permite peticiones de tu frontend
+// Configuración explícita de CORS para manejar preflight requests en entornos con proxy
+const corsOptions = {
+  origin: '*', // O sé más específico: 'https://tu-dominio.com'
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+app.use(cors(corsOptions));
+
 app.use(express.json()); // Parsea body de JSON
 app.use(express.urlencoded({ extended: true }));
 
