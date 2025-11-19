@@ -27,6 +27,13 @@ app.use((err, req, res, next) => {
     console.error(err.stack); // Imprime el stack trace del error en la consola del servidor
     res.status(500).json({ error: 'Internal Server Error', message: err.message }); // Envía una respuesta JSON estandarizada
 });
+// MANEJADOR DE ERRORES GLOBAL
+app.use((err, req, res, next) => {
+  console.error('--- ¡ERROR CAPTURADO! ---');
+  console.error(err.stack);
+  console.error('-------------------------');
+  res.status(500).json({ error: 'Internal Server Error' });
+});
 
 // Iniciar el servidor
 app.listen(port, () => {
