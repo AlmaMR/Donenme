@@ -1,4 +1,22 @@
 require('dotenv').config();
+
+// =================================================================
+// CAPTURADORES DE ERRORES DE PROCESO (AÑADIR ESTO AL INICIO)
+// =================================================================
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('--- RECHAZO DE PROMESA NO MANEJADO ---');
+  console.error('Razón:', reason);
+  console.error('------------------------------------');
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('--- EXCEPCIÓN NO CAPTURADA ---');
+  console.error('Error:', error);
+  console.error('------------------------------');
+  process.exit(1); // Es buena práctica reiniciar en este caso
+});
+// =================================================================
+
 const express = require('express');
 const cors = require('cors');
 const donenme_db = require('./BD/database'); // Se conecta y asegura el índice
