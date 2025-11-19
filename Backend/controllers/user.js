@@ -145,12 +145,15 @@ const loginUser = async (req, res, next) => {
 
 
 const getUserProfile = async (req, res, next) => {
+    console.log('--- PUNTO DE CONTROL 1: Entrando a getUserProfile ---');
     // Gracias al middleware, 'req.user' ya tiene los datos del token
     const userId = req.user.id;
+    console.log(`--- PUNTO DE CONTROL 2: Buscando usuario con ID: ${userId} ---`);
 
     try {
         // Buscamos al usuario en la BD usando el ID del token
         const userDoc = await donenme_db.get(userId);
+        console.log('--- PUNTO DE CONTROL 3: Usuario encontrado en la BD ---');
 
         // ¡Importante! Nunca devuelvas la contraseña
         res.status(200).json({
@@ -161,7 +164,10 @@ const getUserProfile = async (req, res, next) => {
             direccion: userDoc.direccion
             // ... (puedes agregar otros campos seguros como rfc, cluni, etc.)
         });
+        console.log('--- PUNTO DE CONTROL 4: Respuesta JSON enviada con éxito ---');
     } catch (error) {
+        console.error('--- ¡ERROR CAPTURADO EN GETUSERPROFILE! ---');
+        console.error(error);
         next(error);
     }
 };
