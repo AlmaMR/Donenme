@@ -22,6 +22,12 @@ app.use('/api/notificaciones', require('./routes/notificaciones')); // <-- Nueva
 // Iniciar Cron Jobs
 initCronJobs();
 
+// Middleware de manejo de errores global
+app.use((err, req, res, next) => {
+    console.error(err.stack); // Imprime el stack trace del error en la consola del servidor
+    res.status(500).json({ error: 'Internal Server Error', message: err.message }); // Envía una respuesta JSON estandarizada
+});
+
 // Iniciar el servidor
 app.listen(port, () => {
     console.log(`Servidor escuchando en el puerto ${port}`);

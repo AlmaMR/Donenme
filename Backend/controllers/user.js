@@ -70,7 +70,7 @@ const register = async (req, res) => {
             }
         });
     } catch (error) {
-        res.status(500).json({ status: "error", message: error.message });
+        next(error);
     }
 };
 
