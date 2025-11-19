@@ -22,17 +22,14 @@ app.use('/api/notificaciones', require('./routes/notificaciones')); // <-- Nueva
 // Iniciar Cron Jobs
 initCronJobs();
 
-// Middleware de manejo de errores global
+// =================================================================
+// MANEJADOR DE ERRORES GLOBAL (ÚNICO Y DEFINITIVO)
+// =================================================================
 app.use((err, req, res, next) => {
-    console.error(err.stack); // Imprime el stack trace del error en la consola del servidor
-    res.status(500).json({ error: 'Internal Server Error', message: err.message }); // Envía una respuesta JSON estandarizada
-});
-// MANEJADOR DE ERRORES GLOBAL
-app.use((err, req, res, next) => {
-  console.error('--- ¡ERROR CAPTURADO! ---');
+  console.error('--- ¡ERROR GLOBAL CAPTURADO! ---');
   console.error(err.stack);
-  console.error('-------------------------');
-  res.status(500).json({ error: 'Internal Server Error' });
+  console.error('---------------------------------');
+  res.status(500).json({ error: 'Internal Server Error', message: err.message || 'Algo salió mal.' });
 });
 
 // Iniciar el servidor
