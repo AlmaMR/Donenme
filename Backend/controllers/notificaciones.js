@@ -26,12 +26,13 @@ const createNotification = async (usuarioId, titulo, mensaje, referenciaId, tipo
     await donenme_db.insert(notificacion);
     console.log(`Notificación creada para el usuario ${usuarioId} por evento ${tipo_evento}`);
   } catch (error) {
-    console.error('Error al crear la notificación:', error);
+    console.error('Error interno al crear la notificación:', error);
+    // No se puede usar next(error) aquí porque no es un middleware de ruta.
   }
 };
 
 // Obtener todas las notificaciones para el usuario autenticado
-const getNotifications = async (req, res) => {
+const getNotifications = async (req, res, next) => {
   try {
     const selector = {
       tipo: 'notificacion',
@@ -40,13 +41,12 @@ const getNotifications = async (req, res) => {
     const result = await donenme_db.find({ selector, sort: [{ fecha_creacion: 'desc' }] });
     res.status(200).json(result.docs);
   } catch (error) {
-    console.error('Error al obtener notificaciones:', error);
-    res.status(500).json({ message: 'Error interno del servidor.' });
+    next(error);
   }
 };
 
 // Marcar una notificación como leída
-const markAsRead = async (req, res) => {
+const markAsRead = async (req, res, next) => {
   try {
     const notificacionId = req.params.id;
     const doc = await donenme_db.get(notificacionId);
@@ -60,13 +60,12 @@ const markAsRead = async (req, res) => {
     await donenme_db.insert(doc);
     res.status(200).json({ message: 'Notificación marcada como leída.' });
   } catch (error) {
-    console.error('Error al marcar la notificación como leída:', error);
-    res.status(500).json({ message: 'Error interno del servidor.' });
+    next(error);
   }
 };
 
 // Obtener el conteo de notificaciones no leídas
-const getUnreadCount = async (req, res) => {
+const getUnreadCount = async (req, res, next) => {
   try {
     const selector = {
       tipo: 'notificacion',
@@ -76,8 +75,7 @@ const getUnreadCount = async (req, res) => {
     const result = await donenme_db.find({ selector });
     res.status(200).json({ count: result.docs.length });
   } catch (error) {
-    console.error('Error al obtener el conteo de no leídas:', error);
-    res.status(500).json({ message: 'Error interno del servidor.' });
+    next(error);
   }
 };
 

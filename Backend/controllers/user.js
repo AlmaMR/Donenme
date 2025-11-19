@@ -9,7 +9,7 @@ const jwt = require('jsonwebtoken'); // Para el login
 // FUNCIONES SPRINT 1 (Registro)
 // ===============================================
 
-const register = async (req, res) => {
+const register = async (req, res, next) => {
     const { nombre, contacto, contrasena, direccion, rfc, cluni, curp, dependencia, tipo_rol, rol } = req.body;
 
     if (!rol || !['empresa', 'ong', 'persona_fisica', 'gobierno'].includes(rol)) {
@@ -80,7 +80,7 @@ const register = async (req, res) => {
 // FUNCIÓN SPRINT 2 (Login)
 // ===============================================
 
-const loginUser = async (req, res) => {
+const loginUser = async (req, res, next) => {
     const { contacto, contrasena } = req.body;
 
     if (!contacto || !contrasena) {
@@ -139,16 +139,12 @@ const loginUser = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error durante el login:', error);
-        res.status(500).json({ 
-            status: "error", 
-            message: "Error interno del servidor" 
-        });
+        next(error);
     }
 };
 
 
-const getUserProfile = async (req, res) => {
+const getUserProfile = async (req, res, next) => {
     // Gracias al middleware, 'req.user' ya tiene los datos del token
     const userId = req.user.id;
 
@@ -166,19 +162,14 @@ const getUserProfile = async (req, res) => {
             // ... (puedes agregar otros campos seguros como rfc, cluni, etc.)
         });
     } catch (error) {
-        console.error("Error al buscar perfil:", error);
-        res.status(404).json({ 
-            status: "error", 
-            message: "Usuario no encontrado." 
-        });
+        next(error);
     }
 };
 
 // ===============================================
 // FUNCIÓN PARA ACTUALIZAR PERFIL (SPRINT 3)
 // ===============================================
-
-const updateUserProfile = async (req, res) => {
+const updateUserProfile = async (req, res, next) => {
     const userId = req.user.id;
     const { nombre, contacto, direccion, contrasena } = req.body;
 
@@ -206,11 +197,7 @@ const updateUserProfile = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error al actualizar perfil:", error);
-        res.status(500).json({ 
-            status: "error", 
-            message: "Error interno del servidor al actualizar el perfil." 
-        });
+        next(error);
     }
 };
 

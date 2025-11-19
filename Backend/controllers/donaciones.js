@@ -6,25 +6,21 @@ const { v4: uuidv4 } = require('uuid');
 // ===============================================
 // GET A DONATION BY ID
 // ===============================================
-const getDonacionById = async (req, res) => {
+const getDonacionById = async (req, res, next) => {
     const donacionId = req.params.id;
 
     try {
         const donacion = await donenme_db.get(donacionId);
         res.status(200).json(donacion);
     } catch (error) {
-        if (error.statusCode === 404) {
-            return res.status(404).json({ message: "Donación no encontrada." });
-        }
-        console.error("Error al obtener donación por ID:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 };
 
 // ===============================================
 // CREAR UNA NUEVA DONACIÓN
 // ===============================================
-const createDonacion = async (req, res) => {
+const createDonacion = async (req, res, next) => {
     const donadorId = req.user.id; // ID del usuario autenticado
     const { productos, punto_reunion, fecha_encuentro, hora_encuentro } = req.body;
 
@@ -75,15 +71,14 @@ const createDonacion = async (req, res) => {
         res.status(201).json({ message: "Donación creada con éxito", donacion: nuevaDonacion });
 
     } catch (error) {
-        console.error("Error al crear donación:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 };
 
 // ===============================================
 // OBTENER DONACIONES DISPONIBLES (MARKETPLACE)
 // ===============================================
-const getDonacionesDisponibles = async (req, res) => {
+const getDonacionesDisponibles = async (req, res, next) => {
     try {
         const query = {
             selector: {
@@ -129,8 +124,7 @@ const getDonacionesDisponibles = async (req, res) => {
         res.status(200).json(donacionesEnriquecidas);
 
     } catch (error) {
-        console.error("Error al obtener donaciones:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 };
 
@@ -138,7 +132,7 @@ const getDonacionesDisponibles = async (req, res) => {
 // ===============================================
 // OBTENER LAS DONACIONES DE UN USUARIO (MIS DONACIONES)
 // ===============================================
-const getMisDonaciones = async (req, res) => {
+const getMisDonaciones = async (req, res, next) => {
     const userId = req.user.id;
 
     try {
@@ -153,15 +147,14 @@ const getMisDonaciones = async (req, res) => {
         res.status(200).json(result.docs);
 
     } catch (error) {
-        console.error("Error al obtener mis donaciones:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 };
 
 // ===============================================
 // MODIFICAR UNA DONACIÓN
 // ===============================================
-const updateDonacion = async (req, res) => {
+const updateDonacion = async (req, res, next) => {
     const donacionId = req.params.id;
     const userId = req.user.id;
     const { productos, punto_reunion } = req.body;
@@ -225,18 +218,14 @@ const updateDonacion = async (req, res) => {
         res.status(200).json({ message: "Donación actualizada con éxito", donacion });
 
     } catch (error) {
-        if (error.statusCode === 404) {
-            return res.status(404).json({ message: "Donación no encontrada." });
-        }
-        console.error("Error al modificar donación:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 };
 
 // ===============================================
 // ELIMINAR UNA DONACIÓN (SOFT DELETE)
 // ===============================================
-const deleteDonacion = async (req, res) => {
+const deleteDonacion = async (req, res, next) => {
     const donacionId = req.params.id;
     const userId = req.user.id;
 
@@ -255,11 +244,7 @@ const deleteDonacion = async (req, res) => {
         res.status(200).json({ message: "Donación eliminada con éxito." });
 
     } catch (error) {
-        if (error.statusCode === 404) {
-            return res.status(404).json({ message: "Donación no encontrada." });
-        }
-        console.error("Error al eliminar donación:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 };
 

@@ -7,7 +7,7 @@ const { createNotification } = require('./notificaciones');
 // ===============================================
 // GET SOLICITUDES BY THE CURRENT USER
 // ===============================================
-const getMisSolicitudes = async (req, res) => {
+const getMisSolicitudes = async (req, res, next) => {
     const receptorId = req.user.id;
 
     try {
@@ -20,15 +20,14 @@ const getMisSolicitudes = async (req, res) => {
         const result = await donenme_db.find(query);
         res.status(200).json(result.docs);
     } catch (error) {
-        console.error("Error al obtener mis solicitudes:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 };
 
 // ===============================================
 // CREAR UNA NUEVA SOLICITUD (ENVIAR SOLICITUD)
 // ===============================================
-const createSolicitud = async (req, res) => {
+const createSolicitud = async (req, res, next) => {
     const receptorId = req.user.id;
     const { donacionId, productos, fecha_encuentro, hora_encuentro, contacto } = req.body;
 
@@ -82,15 +81,14 @@ const createSolicitud = async (req, res) => {
         res.status(201).json({ message: "Solicitud enviada con éxito", solicitud: nuevaSolicitud });
 
     } catch (error) {
-        console.error("Error al crear solicitud:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 };
 
 // ===============================================
 // VER SOLICITUDES PARA UN DONATIVO
 // ===============================================
-const getSolicitudesPorDonacion = async (req, res) => {
+const getSolicitudesPorDonacion = async (req, res, next) => {
     const donacionId = req.params.id;
     const userId = req.user.id;
 
@@ -134,18 +132,14 @@ const getSolicitudesPorDonacion = async (req, res) => {
         res.status(200).json(solicitudesEnriquecidas);
 
     } catch (error) {
-        if (error.statusCode === 404) {
-            return res.status(404).json({ message: "Donación no encontrada." });
-        }
-        console.error("Error al obtener solicitudes:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 };
 
 // ===============================================
 // APROBAR UNA SOLICITUD
 // ===============================================
-const aprobarSolicitud = async (req, res) => {
+const aprobarSolicitud = async (req, res, next) => {
     const solicitudId = req.params.id;
     const userId = req.user.id;
 
@@ -197,18 +191,14 @@ const aprobarSolicitud = async (req, res) => {
         res.status(200).json({ message: "Solicitud aprobada con éxito." });
 
     } catch (error) {
-        if (error.statusCode === 404) {
-            return res.status(404).json({ message: "Solicitud o donación no encontrada." });
-        }
-        console.error("Error al aprobar solicitud:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 };
 
 // ===============================================
 // RECHAZAR UNA SOLICITUD
 // ===============================================
-const rechazarSolicitud = async (req, res) => {
+const rechazarSolicitud = async (req, res, next) => {
     const solicitudId = req.params.id;
     const userId = req.user.id;
     const { comentario } = req.body;
@@ -243,11 +233,7 @@ const rechazarSolicitud = async (req, res) => {
         res.status(200).json({ message: "Solicitud rechazada con éxito." });
 
     } catch (error) {
-        if (error.statusCode === 404) {
-            return res.status(404).json({ message: "Solicitud o donación no encontrada." });
-        }
-        console.error("Error al rechazar solicitud:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 };
 
