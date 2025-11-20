@@ -3,6 +3,10 @@ require('dotenv').config();
 // =================================================================
 // CAPTURADORES DE ERRORES DE PROCESO (AÑADIR ESTO AL INICIO)
 // =================================================================
+process.on('exit', (code) => {
+  console.log(`--- EL PROCESO ESTÁ A PUNTO DE SALIR CON CÓDIGO: ${code} ---`);
+});
+
 process.on('unhandledRejection', (reason, promise) => {
   console.error('--- RECHAZO DE PROMESA NO MANEJADO ---');
   console.error('Razón:', reason);
