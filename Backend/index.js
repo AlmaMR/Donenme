@@ -44,10 +44,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rutas
 // Conecta tus rutas de usuario
-app.use('/api/users', require('./routes/user')); 
-app.use('/api/donaciones', require('./routes/donaciones')); // <-- Nueva ruta para donaciones
-app.use('/api/solicitudes', require('./routes/solicitudes')); // <-- Nueva ruta para solicitudes
-app.use('/api/notificaciones', require('./routes/notificaciones')); // <-- Nueva ruta para notificaciones
+app.use('/users', require('./routes/user')); 
+app.use('/donaciones', require('./routes/donaciones')); // <-- Nueva ruta para donaciones
+app.use('/solicitudes', require('./routes/solicitudes')); // <-- Nueva ruta para solicitudes
+app.use('/notificaciones', require('./routes/notificaciones')); // <-- Nueva ruta para notificaciones
 
 // Iniciar Cron Jobs
 // initCronJobs();
