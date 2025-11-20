@@ -188,7 +188,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`${API_BASE_URL}/users/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true' // Cabecera para evitar advertencia de ngrok
+                },
                 body: JSON.stringify({ contacto, contrasena })
             });
 
