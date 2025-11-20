@@ -29,16 +29,21 @@ const { initCronJobs } = require('./services/cronJobs'); // Importar cron jobs
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middlewares
-// Configuración explícita de CORS para manejar preflight requests en entornos con proxy
-const corsOptions = {
-  origin: '*', // O sé más específico: 'https://tu-dominio.com'
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-};
-app.use(cors(corsOptions));
+// Middleware CORS manual y explícito (para descartar problemas con ngrok)
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization'); // Añadido Authorization por si se usa
+    
+    // Si la petición es de tipo OPTIONS (pre-flight), responder inmediatamente
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    
+    next();
+});
 
+// Middlewares
 app.use(express.json()); // Parsea body de JSON
 app.use(express.urlencoded({ extended: true }));
 
