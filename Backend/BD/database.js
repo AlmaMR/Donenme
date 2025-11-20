@@ -3,7 +3,7 @@
 require('dotenv').config();
 
 // 1. Conéctate a Nano
-const nano = require('nano')(`http://${process.env.COUCHDB_USER}:${process.env.COUCHDB_PASS}@${process.env.COUCHDB_HOST}:${process.env.COUCHDB_PORT}`);
+const nano = require('nano')(`http://${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}:${process.env.DB_PORT}`);
 
 // 2. DEFINE la variable ANTES de usarla
 // Usará 'donenme' (de tu archivo .env)
