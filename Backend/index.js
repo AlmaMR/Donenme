@@ -30,7 +30,19 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware para habilitar CORS
-app.use(cors());
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Permitir solicitudes sin origen (como Postman) y desde tu frontend
+        // En un entorno de producción, deberías restringir esto a dominios específicos.
+        callback(null, true);
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true, // Permitir cookies
+    optionsSuccessStatus: 204, // Para navegadores antiguos
+    allowedHeaders: 'Content-Type,Authorization' // Asegúrate de incluir 'Authorization' si usas tokens
+};
+
+app.use(cors(corsOptions));
 
 // Middlewares
 app.use(express.json()); // Parsea body de JSON
