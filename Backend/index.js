@@ -46,7 +46,7 @@ app.use('/api/solicitudes', require('./routes/solicitudes')); // <-- Nueva ruta 
 app.use('/api/notificaciones', require('./routes/notificaciones')); // <-- Nueva ruta para notificaciones
 
 // Iniciar Cron Jobs
-initCronJobs();
+// initCronJobs();
 
 // =================================================================
 // MANEJADOR DE ERRORES GLOBAL (ÚNICO Y DEFINITIVO)
