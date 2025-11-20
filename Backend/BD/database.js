@@ -2,6 +2,19 @@
 
 require('dotenv').config();
 
+// =================================================================
+// DEBUG: Imprimir variables de entorno para verificar si se cargan
+// =================================================================
+console.log('--- DEBUGGING .env VARIABLES ---');
+console.log('COUCHDB_USER:', process.env.COUCHDB_USER);
+console.log('COUCHDB_PASS:', process.env.COUCHDB_PASS ? '******' : undefined); // No imprimir la contraseña en logs
+console.log('COUCHDB_HOST:', process.env.COUCHDB_HOST);
+console.log('COUCHDB_PORT:', process.env.COUCHDB_PORT);
+console.log('DB_NAME:', process.env.DB_NAME);
+console.log('---------------------------------');
+// =================================================================
+
+
 // 1. Conéctate a Nano
 const nano = require('nano')(`http://${process.env.COUCHDB_USER}:${process.env.COUCHDB_PASS}@${process.env.COUCHDB_HOST}:${process.env.COUCHDB_PORT}`);
 
